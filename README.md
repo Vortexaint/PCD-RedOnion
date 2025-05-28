@@ -42,9 +42,9 @@ python main.py
 
 ## Tim Pengembang
 
-- Nama Anggota 1
-- Nama Anggota 2
-- Nama Anggota 3
+- 152023055 Muhammad Kevin
+- 152023061 M. Bakti Komara R. P.
+- 152023070 Reeyhan Arif Saputra
 
 ## Lisensi
 
