@@ -27,7 +27,7 @@ Proyek ini bertujuan untuk mendeteksi dan mengidentifikasi jenis-jenis limbah te
 
 1. Clone repository ini
 ```bash
-git clone https://github.com/username/textile-waste-detection.git
+git clone https://github.com/Vortexaint/PCD-RedOnion.git
 ```
 
 2. Install dependencies
