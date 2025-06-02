@@ -101,6 +101,65 @@ python kode/klasifikasi.py
   - Evaluasi performa
   - Video demo dan laporan klasifikasi
 
+## TO-DO LIST
+Masalah Penggunaan Library
+- Projek saat ini masih menggunakan beberapa library yang tidak diizinkan, yaitu:
+  - matplotlib (digunakan untuk visualisasi)
+  - scikit-learn (digunakan untuk klasifikasi)
+  - pathlib (jika digunakan dalam kode)
+
+Solusi: Hapus atau ganti semua library tersebut. Hanya library berikut yang diperbolehkan:
+```
+cv2, skimage, PIL, NumPy, mahotas
+```
+Atau konsultasi dengan Bapak Rizka Milandga Milenio
+https://id.linkedin.com/in/milandga-milenio-462937182
+
+Persyaratan Dataset
+- Tugas mengharuskan penggunaan minimal 60 citra RGB. Dataset saat ini:
+  - Training: 8 + 4 + 6 = 18 citra
+  - Testing: 3 + 2 + 3 = 8 citra
+  - Total: 26 citra
+
+Solusi: Tambahkan minimal 34 citra lagi agar total mencapai minimal 60.
+
+Model Klasifikasi
+- Saat ini hanya menggunakan Random Forest.
+
+Solusi: Tambahkan 2 model klasifikasi (contoh: KNN dan SVM).
+
+Deliverables yang Masih Kurang
+- Video demo
+- Laporan lengkap (bukan hanya README), memuat:
+  - Penjelasan preprocessing secara detail
+  - Algoritma ekstraksi fitur
+  - Algoritma klasifikasi
+  - Hasil evaluasi performa klasifikasi
+
+Evaluasi Kinerja
+- Tugas meminta penggunaan akurasi (accuracy) sebagai matriks evaluasi.
+- Meskipun scikit-learn tidak diizinkan secara umum, penggunaan untuk evaluasi diperbolehkan sesuai instruksi tugas.
+
+Solusi: Tampilkan akurasi dan confusion matrix menggunakan scikit-learn.
+
+Upaya Tambahan & Kreativitas
+- Untuk nilai tambahan, tambahkan variasi preprocessing:
+  - ✅ Sudah mencoba RGB → HSV
+  - Bisa ditambahkan: RGB → CMYK
+  - Tambah variasi kondisi citra:
+  - Sudut pengambilan gambar berbeda
+  - Pencahayaan terang/redup
+  - Citra dengan noise/kabut
+  - Tambahkan variasi teknik preprocessing:
+    - Filtering (median, Gaussian, dsb)
+    - Augmentasi (rotasi, flip, dsb)
+
+Prioritas Paling Mendesak
+- Tambah dataset menjadi minimal 60 citra
+- Tambah minimal 1 model klasifikasi tambahan
+- Buat video demo dan laporan lengkap
+- Hapus/ganti semua library yang tidak diperbolehkan/Konsultasi
+
 ## Lisensi
 
 MIT License
