@@ -29,12 +29,6 @@ Proyek ini bertujuan untuk mengklasifikasikan sampah domestik ke dalam 3 kategor
 - scikit-learn (klasifikasi)
 - Matplotlib (visualisasi)
 
-Instalasi dependencies menggunakan command berikut:
-
-```
-pip install -r requirements.txt
-```
-
 ## Struktur Dataset
 
 ```
