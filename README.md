@@ -86,20 +86,26 @@ python kode/klasifikasi.py
 
 ## Pembagian Tugas
 
-- **152023055 Muhammad Kevin**
-  - Pengumpulan dataset
-  - Preprocessing citra
+- **152023070 Reeyhan Arif Saputra**
+  - Pengumpulan dataset awal
+  - Preprocessing citra dasar
   - Ekstraksi fitur bentuk
-
-- **152023061 M. Bakti Komara R. P.**
   - Ekstraksi fitur warna
   - Ekstraksi fitur tekstur
-  - Dokumentasi laporan
+  - Implementasi klasifikasi dasar dengan Random Forest
 
-- **152023070 Reeyhan Arif Saputra**
-  - Implementasi klasifikasi
-  - Evaluasi performa
-  - Video demo dan laporan klasifikasi
+- **152023061 M. Bakti Komara R. P.**
+  - Pengembangan model klasifikasi tambahan (KNN dan SVM)
+  - Implementasi variasi preprocessing (RGB→CMYK, filtering)
+  - Penambahan dataset baru (65% dari 34 gambar yang dibutuhkan)
+  - Penyusunan laporan teknis lengkap
+  - Konsultasi terkait penggunaan library dengan dosen
+
+- **152023055 Muhammad Kevin**
+  - Penambahan dataset baru (35% dari 34 gambar yang dibutuhkan)
+  - Implementasi augmentasi data (rotasi, flip, variasi pencahayaan)
+  - Pembuatan video demo
+  - Implementasi evaluasi performa (akurasi dan confusion matrix)
 
 ## TO-DO LIST
 Masalah Penggunaan Library
