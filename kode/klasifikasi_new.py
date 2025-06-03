@@ -9,7 +9,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 import pickle
 
 def get_color_distribution(color_features):
-    """Get detailed color distribution from features with enhanced color ranges."""
+    """Get detailed color distribution from features."""
     # First 32 features are hue histogram
     hue_hist = color_features[:32]
     # Next 32 features are saturation histogram
@@ -23,23 +23,21 @@ def get_color_distribution(color_features):
     v_stats = color_features[106:111]
     
     color_dist = {}
-      # Calculate percentage of each color range
+    
+    # Calculate percentage of each color range
     total_pixels = np.sum(hue_hist)
     if total_pixels > 0:
         # Yellow range (20-40 degrees in HSV)
         yellow_mask = slice(int(20/180*32), int(40/180*32))
         yellow_pixels = np.sum(hue_hist[yellow_mask])
         
-        # Brown range (0-20 degrees in HSV with lower saturation and value)
+        # Brown range (0-20 degrees in HSV)
         brown_mask = slice(0, int(20/180*32))
         brown_pixels = np.sum(hue_hist[brown_mask])
         
         # Green range (60-120 degrees in HSV)
         green_mask = slice(int(60/180*32), int(120/180*32))
         green_pixels = np.sum(hue_hist[green_mask])
-        
-        # Calculate actual percentages considering saturation and value
-        total_significant = np.sum(sat_hist[16:])  # Only consider medium-high saturation
         
         # Calculate white pixels (high value, low saturation)
         white_threshold = 0.8  # 80% of max value
@@ -56,38 +54,42 @@ def get_color_distribution(color_features):
         # Store color statistics
         color_dist['saturation'] = s_stats[0]  # mean saturation
         color_dist['value'] = v_stats[0]  # mean brightness
-        
-        # Calculate color confidence
-        color_dist['saturation'] = s_stats[0]  # mean saturation
-        color_dist['value'] = v_stats[0]  # mean value
     
     return color_dist
 
-def get_dominant_color(color_features):
-    """Extract dominant color information from color features using enhanced analysis."""
-    color_dist = get_color_distribution(color_features)
-    
-    # Color classification rules based on domain knowledge
-    if color_dist['saturation'] < 50:  # Low saturation indicates grayscale
-        if color_dist['value'] < 85:
-            return "Hitam"
-        elif color_dist['value'] > 170:
+def get_object_color(color_dist):
+    """Determine the actual color of the object with enhanced detection"""
+    # First check for achromatic colors (black, white, gray)
+    if color_dist['saturation'] < 40:  # Low saturation threshold increased
+        if color_dist['value'] > 180:
             return "Putih"
+        elif color_dist['value'] < 70:
+            return "Hitam"
         else:
             return "Abu-abu"
     
-    # Find the dominant color among the key colors we care about
-    key_colors = {'Kuning': color_dist['yellow'], 
-                 'Coklat': color_dist['brown'],
-                 'Hijau': color_dist['green']}
+    # Initialize color scores
+    color_scores = {
+        "Kuning": color_dist['yellow'] * (color_dist['saturation'] / 255),
+        "Coklat": color_dist['brown'] * (1 - color_dist['value'] / 255),
+        "Hijau": color_dist['green'] * (color_dist['saturation'] / 255)
+    }
     
-    dominant_color = max(key_colors.items(), key=lambda x: x[1])
+    # Filter significant colors (>10% presence and good confidence)
+    significant_colors = [
+        color for color, score in color_scores.items()
+        if score > 0.1
+    ]
     
-    # Only return the color if it's significant enough
-    if dominant_color[1] > 0.2:  # At least 20% of the image
-        return dominant_color[0]
-    else:
-        return "Campuran"  # Mixed colors
+    if not significant_colors:
+        if color_dist['value'] > 180 and color_dist['saturation'] < 60:
+            return "Putih kekuningan"  # Light yellowish
+        elif color_dist['value'] < 100 and color_dist['brown'] > 0.1:
+            return "Coklat gelap"  # Dark brown
+        else:
+            return "Warna campuran"  # Mixed colors
+    
+    return "/".join(significant_colors)
 
 def load_features(features_dir, category, is_training=True):
     """Load features for a specific category of waste."""
@@ -98,7 +100,6 @@ def load_features(features_dir, category, is_training=True):
     for feature_type in ['color', 'shape', 'texture']:
         feature_files = list(features_dir.glob(f"{prefix}_{category}*_{feature_type}_features.npy"))
         for f in feature_files:
-            # Extract sample name from file path
             sample_name = f.stem.replace(f"{prefix}_{category}_", "").replace(f"_{feature_type}_features", "")
             
             if sample_name not in features_dict:
@@ -107,7 +108,6 @@ def load_features(features_dir, category, is_training=True):
             
             features_dict[sample_name][feature_type] = np.load(f)
     
-    # Combine features for each sample
     combined_features = []
     final_file_names = []
     color_features_list = []
@@ -164,9 +164,9 @@ def combine_features(is_training=True):
 def print_confusion_matrix(y_true, y_pred, labels):
     """Print confusion matrix in a readable format."""
     cm = confusion_matrix(y_true, y_pred)
-    print("\nConfusion Matrix:")
-    print("            Predicted")
-    print("True      ", end="")
+    print("\nMatriks Konfusi:")
+    print("            Prediksi")
+    print("Aktual    ", end="")
     for label in labels:
         print(f"{label:>8}", end="")
     print("\n" + "-" * 40)
@@ -180,12 +180,12 @@ def print_confusion_matrix(y_true, y_pred, labels):
 def evaluate_classifier(clf_name, clf, X_train, y_train):
     """Evaluate classifier using cross-validation."""
     scores = cross_val_score(clf, X_train, y_train, cv=2)  # Using 2-fold CV due to small dataset
-    print(f"\n{clf_name} Cross-validation Scores: {scores}")
-    print(f"Mean CV Score: {scores.mean():.3f} (+/- {scores.std() * 2:.3f})")
+    print(f"\n{clf_name} Skor Validasi-silang: {scores}")
+    print(f"Rata-rata Skor: {scores.mean():.3f} (+/- {scores.std() * 2:.3f})")
 
 def train_classifiers(X, y, color_features):
     """Train multiple classifiers with color-based feature importance."""
-    print("\nAnalyzing training data characteristics...")
+    print("\nAnalisis karakteristik data training...")
     
     # Analyze color distributions for each class
     class_color_stats = {0: [], 1: [], 2: []}  # For Organik, Plastik, Kertas
@@ -235,7 +235,7 @@ def train_classifiers(X, y, color_features):
     # Train and evaluate each classifier
     trained_models = {}
     for name, clf in classifiers.items():
-        print(f"\nTraining {name}...")
+        print(f"\nMelatih {name}...")
         evaluate_classifier(name, clf, X_scaled, y)
         clf.fit(X_scaled, y)
         trained_models[name] = clf
@@ -243,16 +243,15 @@ def train_classifiers(X, y, color_features):
     return trained_models, scaler
 
 def get_class_confidence(color_dist, predicted_class):
-    """Calculate enhanced confidence score using color distribution rules."""
+    """Calculate confidence score based on color distribution and predicted class."""
     confidence = 0.0
     
     if predicted_class == 'Organik':
-        # Organic waste has specific color characteristics
+        # Organic waste tends to be yellow/brown
         yellow_score = color_dist['yellow'] * 0.4  # Yellow is important
         brown_score = color_dist['brown'] * 0.4    # Brown is equally important
         non_white_score = (1 - color_dist['white']) * 0.2  # Should not be too white
         
-        # Combined score with emphasis on having either yellow or brown
         confidence = max(yellow_score, brown_score) + non_white_score
         
         # Bonus for having both yellow and brown
@@ -260,7 +259,7 @@ def get_class_confidence(color_dist, predicted_class):
             confidence += 0.1
         
     elif predicted_class == 'Plastik':
-        # Plastic items often have distinct saturation patterns
+        # Plastic tends to have clear colors and high saturation
         sat_score = (color_dist['saturation'] / 255) * 0.4
         brightness = (color_dist['value'] / 255)
         bright_score = brightness * 0.3 if brightness > 0.6 else 0
@@ -269,7 +268,7 @@ def get_class_confidence(color_dist, predicted_class):
         confidence = sat_score + bright_score + color_variety
         
     elif predicted_class == 'Kertas':
-        # Paper is predominantly white or light colored
+        # Paper tends to be white/light colored
         white_score = color_dist['white'] * 0.6
         low_color_score = (1 - (color_dist['yellow'] + color_dist['brown'])) * 0.4
         
@@ -302,44 +301,8 @@ def predict_samples(models, scaler, X, file_names, color_features, y_true=None):
             print("\nDetail Prediksi:")
             for i, (pred, file_name, color_feat) in enumerate(zip(y_pred, file_names, color_features)):
                 color_dist = get_color_distribution(color_feat)
-                warna = get_dominant_color(color_feat)
-                confidence = get_class_confidence(color_dist, categories[pred])
-                  # Determine the actual object color based on color distribution and saturation
-                def get_object_color(color_dist):
-                    """Determine the actual color of the object with enhanced detection"""
-                    # First check for achromatic colors (black, white, gray)
-                    if color_dist['saturation'] < 40:  # Low saturation threshold increased
-                        if color_dist['value'] > 180:
-                            return "Putih"
-                        elif color_dist['value'] < 70:
-                            return "Hitam"
-                        else:
-                            return "Abu-abu"
-                    
-                    # Initialize color scores
-                    color_scores = {
-                        "Kuning": color_dist['yellow'] * (color_dist['saturation'] / 255),
-                        "Coklat": color_dist['brown'] * (1 - color_dist['value'] / 255),
-                        "Hijau": color_dist['green'] * (color_dist['saturation'] / 255)
-                    }
-                    
-                    # Filter significant colors (>10% presence and good confidence)
-                    significant_colors = [
-                        color for color, score in color_scores.items()
-                        if score > 0.1
-                    ]
-                    
-                    if not significant_colors:
-                        if color_dist['value'] > 180 and color_dist['saturation'] < 60:
-                            return "Putih kekuningan"  # Light yellowish
-                        elif color_dist['value'] < 100 and color_dist['brown'] > 0.1:
-                            return "Coklat gelap"  # Dark brown
-                        else:
-                            return "Warna campuran"  # Mixed colors
-                    
-                    return "/".join(significant_colors)
-                
                 object_color = get_object_color(color_dist)
+                confidence = get_class_confidence(color_dist, categories[pred])
                 
                 print(f"\n{file_name}:")
                 print(f"- Kelas yang diprediksi: {categories[pred]}")
@@ -351,7 +314,8 @@ def predict_samples(models, scaler, X, file_names, color_features, y_true=None):
                 print(f"  Putih: {color_dist['white']:.1%}")
                 print(f"  Saturasi: {color_dist['saturation']:.1f}")
                 print(f"  Kecerahan: {color_dist['value']:.1f}")
-                  # Check if prediction matches color expectations with detailed feedback
+                
+                # Check if prediction matches color expectations
                 if categories[pred] == 'Organik':
                     if color_dist['yellow'] < 0.1 and color_dist['brown'] < 0.1:
                         print("⚠️ Peringatan: Sampah organik biasanya berwarna kuning/coklat")
