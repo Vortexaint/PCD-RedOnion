@@ -1,165 +1,178 @@
 import cv2
 import numpy as np
-from pathlib import Path
-import matplotlib.pyplot as plt
+import os
 
-def load_image(image_path):
-    """Load and preprocess image."""
-    img = cv2.imread(str(image_path))
-    if img is None:
-        raise ValueError(f"Could not load image: {image_path}")
-    return cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+def ekstraksi_fitur_warna(image_path):
+    """
+    Ekstraksi fitur warna menggunakan histogram warna HSV dan statistik
+    """
+    # Baca gambar
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Error: tidak dapat membaca {image_path}")
+        return None
 
-def segment_object(img):
-    """Segment the object from background using HSV color space."""
-    # Convert to HSV
-    blur = cv2.GaussianBlur(img, (7, 7), 0)
+    # Resize gambar
+    image = cv2.resize(image, (200, 200))
     
-    # Create mask using Otsu's thresholding on Value channel
-    _, mask = cv2.threshold(blur[:,:,2], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Konversi ke HSV color space
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     
-    # Morphological operations to clean up the mask
-    kernel = np.ones((5,5), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    # Hitung histogram untuk setiap channel
+    hist_h = cv2.calcHist([hsv], [0], None, [8], [0, 180])
+    hist_s = cv2.calcHist([hsv], [1], None, [8], [0, 256])
+    hist_v = cv2.calcHist([hsv], [2], None, [8], [0, 256])
     
-    return mask
+    # Normalisasi histogram
+    hist_h = cv2.normalize(hist_h, hist_h).flatten()
+    hist_s = cv2.normalize(hist_s, hist_s).flatten()
+    hist_v = cv2.normalize(hist_v, hist_v).flatten()
+    
+    # Hitung statistik untuk setiap channel
+    stats_h = [np.mean(hsv[:,:,0]), np.std(hsv[:,:,0])]
+    stats_s = [np.mean(hsv[:,:,1]), np.std(hsv[:,:,1])]
+    stats_v = [np.mean(hsv[:,:,2]), np.std(hsv[:,:,2])]
+    
+    # Gabungkan semua fitur
+    fitur = np.concatenate([hist_h, hist_s, hist_v, stats_h, stats_s, stats_v])
+    
+    return fitur
 
-def extract_color_features(img):
-    """Extract enhanced color features using HSV color space and segmentation."""
-    # Segment object
-    mask = segment_object(img)
+def proses_folder_dataset(folder_dataset, output_file):
+    """
+    Proses semua gambar dalam folder dataset
+    """
+    data = []
+    label_list = []
     
-    # Calculate HSV histogram of segmented object
-    h_hist = cv2.calcHist([img], [0], mask, [32], [0, 180])
-    s_hist = cv2.calcHist([img], [1], mask, [32], [0, 256])
-    v_hist = cv2.calcHist([img], [2], mask, [32], [0, 256])
-    
-    # Normalize histograms
-    h_hist = cv2.normalize(h_hist, h_hist).flatten()
-    s_hist = cv2.normalize(s_hist, s_hist).flatten()
-    v_hist = cv2.normalize(v_hist, v_hist).flatten()
-    
-    # Calculate statistical features for each channel
-    h_stats = calculate_channel_stats(img[:,:,0], mask)
-    s_stats = calculate_channel_stats(img[:,:,1], mask)
-    v_stats = calculate_channel_stats(img[:,:,2], mask)
-    
-    # Calculate color moments
-    moments = calculate_color_moments(img, mask)
-    
-    # Combine all features
-    features = np.concatenate([
-        h_hist, s_hist, v_hist,  # Color distribution (96 features)
-        h_stats, s_stats, v_stats,  # Statistical features (15 features)
-        moments  # Color moments (9 features)
-    ])
-    
-    return features
+    # Buat direktori output jika belum ada
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-def calculate_channel_stats(channel, mask):
-    """Calculate statistical features for a channel."""
-    # Apply mask
-    masked_channel = channel[mask > 0]
-    
-    if len(masked_channel) == 0:
-        return np.zeros(5)
-    
-    # Calculate statistics
-    mean = np.mean(masked_channel)
-    std = np.std(masked_channel)
-    skewness = np.mean(((masked_channel - mean) / (std + 1e-10)) ** 3)
-    kurtosis = np.mean(((masked_channel - mean) / (std + 1e-10)) ** 4) - 3
-    entropy = -np.sum(np.histogram(masked_channel, bins=32, density=True)[0] * 
-                     np.log2(np.histogram(masked_channel, bins=32, density=True)[0] + 1e-10))
-    
-    return np.array([mean, std, skewness, kurtosis, entropy])
+    for label in os.listdir(folder_dataset):
+        folder_label = os.path.join(folder_dataset, label)
+        if not os.path.isdir(folder_label):
+            continue
 
-def calculate_color_moments(img, mask):
-    """Calculate color moments for the image."""
-    moments = []
+        print(f"[INFO] Memproses folder {label}...")
+        for file in os.listdir(folder_label):
+            path_file = os.path.join(folder_label, file)
+            fitur = ekstraksi_fitur_warna(path_file)
+            
+            if fitur is not None:
+                data.append(fitur)
+                label_list.append(label)
+
+    # Simpan hasil ke file numpy
+    np.savez(output_file, 
+             fitur=np.array(data), 
+             label=np.array(label_list))
     
-    for i in range(3):  # For each channel
-        channel = img[:,:,i][mask > 0]
-        if len(channel) == 0:
-            moments.extend([0, 0, 0])
+    print(f"[INFO] Ekstraksi selesai. Disimpan ke: {output_file}")
+    return np.array(data), np.array(label_list)
+
+def hitung_jarak(fitur1, fitur2):
+    """
+    Menghitung jarak Euclidean antara dua fitur
+    """
+    return np.sqrt(np.sum((fitur1 - fitur2) ** 2))
+
+def klasifikasi_gambar(fitur_test, fitur_training, label_training):
+    """
+    Klasifikasi menggunakan metode nearest neighbor
+    """
+    jarak_min = float('inf')
+    label_prediksi = None
+    
+    for fitur_train, label in zip(fitur_training, label_training):
+        jarak = hitung_jarak(fitur_test, fitur_train)
+        if jarak < jarak_min:
+            jarak_min = jarak
+            label_prediksi = label
+            
+    return label_prediksi, jarak_min
+
+def knn_predict(fitur_test, fitur_training, label_training, k=3):
+    """
+    Klasifikasi menggunakan k-Nearest Neighbors dengan normalisasi dan pembobotan jarak
+    """
+    # Normalisasi fitur
+    mean = np.mean(fitur_training, axis=0)
+    std = np.std(fitur_training, axis=0)
+    fitur_training_norm = (fitur_training - mean) / (std + 1e-10)
+    fitur_test_norm = (fitur_test - mean) / (std + 1e-10)
+    
+    # Hitung jarak ke semua data training
+    jarak = []
+    for fitur_train, label in zip(fitur_training_norm, label_training):
+        d = hitung_jarak(fitur_test_norm, fitur_train)
+        jarak.append((d, label))
+    
+    # Urutkan berdasarkan jarak
+    jarak.sort(key=lambda x: x[0])
+    
+    # Ambil k tetangga terdekat
+    k_terdekat = jarak[:k]
+    
+    # Voting mayoritas dengan pembobotan berdasarkan jarak
+    label_count = {}
+    total_weights = {}
+    
+    for d, label in k_terdekat:
+        weight = 1.0 / (d + 1e-10)  # Inverse distance weighting
+        if label not in label_count:
+            label_count[label] = weight
+            total_weights[label] = weight
+        else:
+            label_count[label] += weight
+            total_weights[label] += weight
+    
+    # Hitung confidence untuk setiap kelas
+    confidences = {label: count/sum(total_weights.values()) for label, count in label_count.items()}
+    
+    # Return label dengan vote terbanyak dan confidence
+    label_prediksi = max(confidences.items(), key=lambda x: x[1])[0]
+    confidence = confidences[label_prediksi] * 100
+    
+    return label_prediksi, confidence
+
+def predict_image(image_path, fitur_training, label_training):
+    """
+    Prediksi kelas untuk gambar baru
+    """
+    fitur = ekstraksi_fitur_warna(image_path)
+    if fitur is not None:
+        label_prediksi, confidence = knn_predict(fitur, fitur_training, label_training, k=3)
+        return label_prediksi, confidence
+    return None, None
+
+if __name__ == "__main__":
+    # Gunakan absolute path untuk dataset
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    dataset_path = os.path.join(current_dir, "citra", "training")
+    output_file = os.path.join(current_dir, "citra", "hasil_ekstraksi", "fitur_warna.npz")
+    
+    # Buat direktori hasil jika belum ada
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
+    # Proses dataset
+    print("[INFO] Memulai ekstraksi fitur warna dari dataset...")
+    fitur_training, label_training = proses_folder_dataset(dataset_path, output_file)
+    
+    # Test beberapa gambar
+    test_dir = os.path.join(current_dir, "citra", "testing")
+    print("\n[INFO] Hasil Klasifikasi:")
+    print("-" * 40)
+    
+    for label in os.listdir(test_dir):
+        label_dir = os.path.join(test_dir, label)
+        if not os.path.isdir(label_dir):
             continue
             
-        # First moment - mean
-        moment1 = np.mean(channel)
-        # Second moment - standard deviation
-        moment2 = np.std(channel)
-        # Third moment - skewness
-        moment3 = np.mean(((channel - moment1) / (moment2 + 1e-10)) ** 3)
-        
-        moments.extend([moment1, moment2, moment3])
-    
-    return np.array(moments)
-
-def save_features(features, output_path):
-    """Save extracted features to file."""
-    np.save(output_path, features)
-
-def main():
-    # Setup paths
-    base_path = Path(__file__).parent.parent
-    output_dir = base_path / 'citra' / 'hasil_ekstraksi'
-    output_dir.mkdir(exist_ok=True)
-    
-    # Process training and testing images
-    total_processed = 0
-    errors = []
-    
-    for dataset in ['training', 'testing']:
-        for category in ['organik', 'plastik', 'kertas']:
-            input_dir = base_path / 'citra' / dataset / category
-            if not input_dir.exists():
-                print(f"Warning: Directory {input_dir} does not exist")
-                continue
-                
-            print(f"\nProcessing {dataset} {category} images...")
-            category_count = 0
-            
-            # Process all images in the category
-            for img_path in input_dir.glob('*.*'):
-                if not img_path.suffix.lower() in ['.png', '.jpg', '.jpeg']:
-                    continue
-                    
-                try:
-                    # Load and process image
-                    img = load_image(img_path)
-                    
-                    # Print image shape and basic stats
-                    print(f"\nAnalyzing {img_path.name}:")
-                    print(f"Image size: {img.shape}")
-                    print(f"Value range - H: [{np.min(img[:,:,0])}, {np.max(img[:,:,0])}], "
-                          f"S: [{np.min(img[:,:,1])}, {np.max(img[:,:,1])}], "
-                          f"V: [{np.min(img[:,:,2])}, {np.max(img[:,:,2])}]")
-                    
-                    features = extract_color_features(img)
-                    
-                    # Save features with dataset and category in filename
-                    output_path = output_dir / f"{dataset}_{category}_{img_path.stem}_color_features.npy"
-                    save_features(features, output_path)
-                    print(f"✓ Successfully extracted features: {features.shape} dimensions")
-                    
-                    category_count += 1
-                    total_processed += 1
-                    
-                except Exception as e:
-                    error_msg = f"Error processing {img_path.name}: {str(e)}"
-                    print(f"✗ {error_msg}")
-                    errors.append(error_msg)
-            
-            print(f"\nProcessed {category_count} images in {category}")
-    
-    print(f"\nSummary:")
-    print(f"Total images processed: {total_processed}")
-    if errors:
-        print(f"Errors encountered: {len(errors)}")
-        print("Error details:")
-        for error in errors:
-            print(f"- {error}")
-
-if __name__ == '__main__':
-    main()
+        for file in os.listdir(label_dir):
+            test_image = os.path.join(label_dir, file)
+            label_prediksi, confidence = predict_image(test_image, fitur_training, label_training)
+            if label_prediksi:
+                print(f"[HASIL] {os.path.basename(test_image)} = {label_prediksi}")
+                print(f"[INFO] Confidence: {confidence:.2f}%")
+                print(f"[INFO] Label sebenarnya: {label}")
+                print("-" * 40)
