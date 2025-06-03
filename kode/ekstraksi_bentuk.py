@@ -5,6 +5,7 @@ import csv
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 
+
 def ekstraksi_fitur_bentuk(image_path):
     """
     Ekstraksi fitur bentuk menggunakan kontur dan properti geometri

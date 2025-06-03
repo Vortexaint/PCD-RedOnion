@@ -1,4 +1,4 @@
-# Klasifikasi Sampah Domestik Berbasis Pengolahan Citra Digital
+# C8 - Klasifikasi Sampah Domestik Berbasis Pengolahan Citra Digital
 
 Sistem klasifikasi sampah domestik menggunakan ekstraksi fitur warna, bentuk, dan tekstur melalui pengolahan citra digital. Proyek ini menggunakan kombinasi fitur HSV, kontur, dan tekstur untuk mengklasifikasikan sampah ke dalam tiga kategori.
 
@@ -76,7 +76,7 @@ python kode/ekstraksi_tekstur.py
 ## Pembagian Tugas
 
 - **152023070 Reeyhan Arif Saputra**
-  - Pengumpulan dataset awal
+  - Pengumpulan dataset
   - Preprocessing citra dasar
   - Ekstraksi fitur bentuk
   - Ekstraksi fitur warna
@@ -92,6 +92,7 @@ python kode/ekstraksi_tekstur.py
 
 - **152023055 Muhammad Kevin**
   - Implementasi augmentasi data
+  - Validasi dataset
   - Penyusunan dan pembuat laporan teknis lengkap
   - Pengujian dan validasi model
   - Lead pembuatan video demo
