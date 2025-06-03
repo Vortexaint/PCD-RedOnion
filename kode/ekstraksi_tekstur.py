@@ -5,28 +5,6 @@ import os
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 
-def train_svm(features, labels):
-    """
-    Melatih model SVM dengan normalisasi fitur
-    """
-    scaler = StandardScaler()
-    fitur_scaled = scaler.fit_transform(features)
-    svm_model = SVC(kernel='rbf', probability=True)
-    svm_model.fit(fitur_scaled, labels)
-    return svm_model, scaler
-
-def predict_image_svm(image_path, svm_model, scaler):
-    """
-    Prediksi gambar menggunakan model SVM
-    """
-    fitur = ekstraksi_fitur_tekstur(image_path)
-    if fitur is not None:
-        fitur_scaled = scaler.transform([fitur])
-        label_prediksi = svm_model.predict(fitur_scaled)[0]
-        confidence = np.max(svm_model.predict_proba(fitur_scaled)) * 100
-        return label_prediksi, confidence
-    return None, None
-
 def ekstraksi_fitur_tekstur(image_path):
     """
     Ekstraksi fitur tekstur menggunakan GLCM (Gray Level Co-occurrence Matrix)
@@ -142,6 +120,28 @@ def predict_image(image_path, fitur_training, label_training):
     fitur = ekstraksi_fitur_tekstur(image_path)
     if fitur is not None:
         label_prediksi, confidence = knn_predict(fitur, fitur_training, label_training, k=3)
+        return label_prediksi, confidence
+    return None, None
+
+def train_svm(features, labels):
+    """
+    Melatih model SVM dengan normalisasi fitur
+    """
+    scaler = StandardScaler()
+    fitur_scaled = scaler.fit_transform(features)
+    svm_model = SVC(kernel='rbf', probability=True)
+    svm_model.fit(fitur_scaled, labels)
+    return svm_model, scaler
+
+def predict_image_svm(image_path, svm_model, scaler):
+    """
+    Prediksi gambar menggunakan model SVM
+    """
+    fitur = ekstraksi_fitur_tekstur(image_path)
+    if fitur is not None:
+        fitur_scaled = scaler.transform([fitur])
+        label_prediksi = svm_model.predict(fitur_scaled)[0]
+        confidence = np.max(svm_model.predict_proba(fitur_scaled)) * 100
         return label_prediksi, confidence
     return None, None
 
