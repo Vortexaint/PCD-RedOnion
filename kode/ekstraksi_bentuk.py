@@ -2,6 +2,30 @@ import cv2
 import numpy as np
 import os
 import csv
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+def train_svm(features, labels):
+    """
+    Melatih model SVM dengan fitur yang sudah dinormalisasi
+    """
+    scaler = StandardScaler()
+    fitur_scaled = scaler.fit_transform(features)
+    svm_model = SVC(kernel='rbf', probability=True)
+    svm_model.fit(fitur_scaled, labels)
+    return svm_model, scaler
+
+def predict_image_svm(image_path, svm_model, scaler):
+    """
+    Prediksi gambar menggunakan model SVM
+    """
+    fitur = ekstraksi_fitur_bentuk(image_path)
+    if fitur is not None:
+        fitur_scaled = scaler.transform([fitur])
+        label_prediksi = svm_model.predict(fitur_scaled)[0]
+        confidence = np.max(svm_model.predict_proba(fitur_scaled)) * 100
+        return label_prediksi, confidence
+    return None, None
 
 def ekstraksi_fitur_bentuk(image_path):
     """
@@ -162,15 +186,14 @@ def predict_image(image_path, features_training, labels_training):
     return None, None
 
 if __name__ == "__main__":
-    # Gunakan absolute path untuk dataset
+    # Path dataset
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     dataset_path = os.path.join(current_dir, "citra", "training")
     output_file = os.path.join(current_dir, "citra", "hasil_ekstraksi", "fitur_bentuk.csv")
     
-    # Buat direktori hasil jika belum ada
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
-    # Proses dataset
+    # Ekstraksi fitur
     print("[INFO] Memulai ekstraksi fitur bentuk dari dataset...")
     proses_folder_dataset(dataset_path, output_file)
     
@@ -178,7 +201,11 @@ if __name__ == "__main__":
     print("\n[INFO] Loading dataset...")
     features_training, labels_training = load_dataset_from_csv(output_file)
     
-    # Test beberapa gambar
+    # Latih model SVM
+    print("[INFO] Melatih model SVM...")
+    svm_model, scaler = train_svm(features_training, labels_training)
+    
+    # Testing
     test_dir = os.path.join(current_dir, "citra", "testing")
     print("\n[INFO] Hasil Klasifikasi:")
     print("-" * 40)
@@ -190,9 +217,14 @@ if __name__ == "__main__":
             
         for file in os.listdir(label_dir):
             test_image = os.path.join(label_dir, file)
-            label_prediksi, confidence = predict_image(test_image, features_training, labels_training)
-            if label_prediksi:
-                print(f"[HASIL] {os.path.basename(test_image)} = {label_prediksi}")
-                print(f"[INFO] Confidence: {confidence:.2f}%")
-                print(f"[INFO] Label sebenarnya: {label}")
-                print("-" * 40)
+
+            # Prediksi dengan KNN
+            label_knn, confidence_knn = predict_image(test_image, features_training, labels_training)
+            # Prediksi dengan SVM
+            label_svm, confidence_svm = predict_image_svm(test_image, svm_model, scaler)
+
+            print(f"[GAMBAR] {os.path.basename(test_image)}")
+            print(f"  [KNN] Prediksi: {label_knn}, Confidence: {confidence_knn:.2f}%")
+            print(f"  [SVM] Prediksi: {label_svm}, Confidence: {confidence_svm:.2f}%")
+            print(f"  [LABEL ASLI] {label}")
+            print("-" * 40)

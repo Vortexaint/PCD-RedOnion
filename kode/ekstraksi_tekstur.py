@@ -2,6 +2,30 @@ import cv2
 import numpy as np
 from skimage.feature import graycomatrix, graycoprops
 import os
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+def train_svm(features, labels):
+    """
+    Melatih model SVM dengan normalisasi fitur
+    """
+    scaler = StandardScaler()
+    fitur_scaled = scaler.fit_transform(features)
+    svm_model = SVC(kernel='rbf', probability=True)
+    svm_model.fit(fitur_scaled, labels)
+    return svm_model, scaler
+
+def predict_image_svm(image_path, svm_model, scaler):
+    """
+    Prediksi gambar menggunakan model SVM
+    """
+    fitur = ekstraksi_fitur_tekstur(image_path)
+    if fitur is not None:
+        fitur_scaled = scaler.transform([fitur])
+        label_prediksi = svm_model.predict(fitur_scaled)[0]
+        confidence = np.max(svm_model.predict_proba(fitur_scaled)) * 100
+        return label_prediksi, confidence
+    return None, None
 
 def ekstraksi_fitur_tekstur(image_path):
     """
@@ -122,19 +146,21 @@ def predict_image(image_path, fitur_training, label_training):
     return None, None
 
 if __name__ == "__main__":
-    # Gunakan absolute path untuk dataset
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     dataset_path = os.path.join(current_dir, "citra", "training")
     output_file = os.path.join(current_dir, "citra", "hasil_ekstraksi", "fitur_tekstur.npz")
     
-    # Buat direktori hasil jika belum ada
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
-    # Proses dataset
+    # Ekstraksi fitur
     print("[INFO] Memulai ekstraksi fitur tekstur dari dataset...")
     fitur_training, label_training = proses_folder_dataset(dataset_path, output_file)
     
-    # Test beberapa gambar
+    # Latih SVM
+    print("[INFO] Melatih model SVM...")
+    svm_model, scaler = train_svm(fitur_training, label_training)
+    
+    # Uji pada gambar testing
     test_dir = os.path.join(current_dir, "citra", "testing")
     print("\n[INFO] Hasil Klasifikasi:")
     print("-" * 40)
@@ -143,12 +169,17 @@ if __name__ == "__main__":
         label_dir = os.path.join(test_dir, label)
         if not os.path.isdir(label_dir):
             continue
-            
+
         for file in os.listdir(label_dir):
             test_image = os.path.join(label_dir, file)
-            label_prediksi, confidence = predict_image(test_image, fitur_training, label_training)
-            if label_prediksi:
-                print(f"[HASIL] {os.path.basename(test_image)} = {label_prediksi}")
-                print(f"[INFO] Confidence: {confidence:.2f}%")
-                print(f"[INFO] Label sebenarnya: {label}")
-                print("-" * 40)
+
+            # Prediksi dengan KNN
+            label_knn, confidence_knn = predict_image(test_image, fitur_training, label_training)
+            # Prediksi dengan SVM
+            label_svm, confidence_svm = predict_image_svm(test_image, svm_model, scaler)
+
+            print(f"[GAMBAR] {os.path.basename(test_image)}")
+            print(f"  [KNN] Prediksi: {label_knn}, Confidence: {confidence_knn:.2f}%")
+            print(f"  [SVM] Prediksi: {label_svm}, Confidence: {confidence_svm:.2f}%")
+            print(f"  [LABEL ASLI] {label}")
+            print("-" * 40)
