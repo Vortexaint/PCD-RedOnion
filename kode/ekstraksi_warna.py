@@ -169,6 +169,28 @@ def predict_image(image_path, fitur_training, label_training):
         return label_prediksi, confidence
     return None, None
 
+def visualisasi_hasil(image_path, label_prediksi, confidence, output_path):
+    """
+    Membuat visualisasi hasil klasifikasi dan menyimpannya sebagai PNG
+    """
+    # Baca gambar
+    image = cv2.imread(image_path)
+    image = cv2.resize(image, (400, 400))
+    
+    # Buat canvas untuk output
+    output = np.zeros((500, 400, 3), dtype=np.uint8)
+    output[0:400, :] = image
+    
+    # Tambahkan text hasil prediksi
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(output, f"Prediksi: {label_prediksi}", (10, 430), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, f"Confidence: {confidence:.2f}%", (10, 460), font, 0.7, (255,255,255), 2)
+    
+    # Simpan gambar
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    cv2.imwrite(output_path, output)
+    print(f"[INFO] Hasil visualisasi disimpan ke: {output_path}")
+
 if __name__ == "__main__":
     # Gunakan absolute path untuk dataset
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -182,12 +204,9 @@ if __name__ == "__main__":
     print("[INFO] Memulai ekstraksi fitur warna dari dataset...")
     fitur_training, label_training = proses_folder_dataset(dataset_path, output_file)
     
-    # Latih model SVM
-    print("[INFO] Melatih model SVM...")
-    svm_model, scaler = train_svm(fitur_training, label_training)
-    
     # Test beberapa gambar
     test_dir = os.path.join(current_dir, "citra", "testing")
+    output_dir = os.path.join(current_dir, "citra", "hasil_ekstraksi", "visualisasi_warna")
     print("\n[INFO] Hasil Klasifikasi:")
     print("-" * 40)
     
@@ -198,13 +217,13 @@ if __name__ == "__main__":
             
         for file in os.listdir(label_dir):
             test_image = os.path.join(label_dir, file)
-            # Prediksi dengan KNN
-            label_knn, confidence_knn = predict_image(test_image, fitur_training, label_training)
-            # Prediksi dengan SVM
-            label_svm, confidence_svm = predict_image_svm(test_image, svm_model, scaler)
-            
-            print(f"[GAMBAR] {os.path.basename(test_image)}")
-            print(f"  [KNN] Prediksi: {label_knn}, Confidence: {confidence_knn:.2f}%")
-            print(f"  [SVM] Prediksi: {label_svm}, Confidence: {confidence_svm:.2f}%")
-            print(f"  [LABEL ASLI] {label}")
-            print("-" * 40)
+            label_prediksi, confidence = predict_image(test_image, fitur_training, label_training)
+            if label_prediksi:
+                # Simpan visualisasi
+                output_path = os.path.join(output_dir, f"{os.path.splitext(file)[0]}_hasil.png")
+                visualisasi_hasil(test_image, label_prediksi, confidence, output_path)
+                
+                print(f"[HASIL] {os.path.basename(test_image)} = {label_prediksi}")
+                print(f"[INFO] Confidence: {confidence:.2f}%")
+                print(f"[INFO] Label sebenarnya: {label}")
+                print("-" * 40)
