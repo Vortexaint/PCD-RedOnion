@@ -85,16 +85,17 @@ python kode/ekstraksi_tekstur.py
   - Pembuatan video demo
 
 - **152023061 M. Bakti Komara R. P.**
-  - Pengembangan model klasifikasi
+  - Pengembangan dan penambahan model klasifikasi
+  - Pembuatan fitur live feed
   - Implementasi variasi preprocessing
-  - Penambahan dataset baru
-  - Penyusunan laporan teknis lengkap
   - Pembuatan video demo
 
 - **152023055 Muhammad Kevin**
-  - Penambahan dataset baru
+  - Penambahan dataset baru (60 Biji)
   - Implementasi augmentasi data
+  - Penyusunan laporan teknis lengkap
   - Pengujian dan validasi model
+  - Lead pembuatan video demo
 
 ## Lisensi
 
