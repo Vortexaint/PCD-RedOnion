@@ -68,8 +68,8 @@ pip install -r requirements.txt
 
 3. Jalankan program ekstraksi fitur
 ```bash
-python kode/ekstraksi_warna.py
-python kode/ekstraksi_bentuk.py
+python kode/ekstraksi_warna.py;
+python kode/ekstraksi_bentuk.py;
 python kode/ekstraksi_tekstur.py
 ```
 
