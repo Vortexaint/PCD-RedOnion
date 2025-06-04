@@ -91,9 +91,8 @@ python kode/ekstraksi_tekstur.py
   - Pembuatan video demo
 
 - **152023055 Muhammad Kevin**
-  - Penambahan dataset baru (60 Biji)
   - Implementasi augmentasi data
-  - Penyusunan laporan teknis lengkap
+  - Penyusunan dan pembuat laporan teknis lengkap
   - Pengujian dan validasi model
   - Lead pembuatan video demo
 
