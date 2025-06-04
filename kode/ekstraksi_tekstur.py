@@ -123,7 +123,6 @@ def predict_image(image_path, fitur_training, label_training):
         return label_prediksi, confidence
     return None, None
 
-<<<<<<< HEAD
 def train_svm(features, labels):
     """
     Melatih model SVM dengan normalisasi fitur
@@ -145,7 +144,7 @@ def predict_image_svm(image_path, svm_model, scaler):
         confidence = np.max(svm_model.predict_proba(fitur_scaled)) * 100
         return label_prediksi, confidence
     return None, None
-=======
+
 def visualisasi_hasil(image_path, knn_result, svm_result, output_path):
     """
     Membuat visualisasi hasil klasifikasi dari KNN dan SVM dan menyimpannya sebagai PNG
@@ -186,7 +185,6 @@ def visualisasi_hasil(image_path, knn_result, svm_result, output_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     cv2.imwrite(output_path, output)
     print(f"[INFO] Hasil visualisasi disimpan ke: {output_path}")
->>>>>>> 4eb9f0747efde222e37f34e7f7639e7f09cf84ff
 
 if __name__ == "__main__":
     # Gunakan absolute path untuk dataset

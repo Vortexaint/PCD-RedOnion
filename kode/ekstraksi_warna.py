@@ -147,7 +147,6 @@ def predict_image(image_path, fitur_training, label_training):
         return label_prediksi, confidence
     return None, None
 
-<<<<<<< HEAD
 def train_svm(features, labels):
     """
     Melatih model SVM dengan normalisasi fitur
@@ -169,7 +168,7 @@ def predict_image_svm(image_path, svm_model, scaler):
         confidence = np.max(svm_model.predict_proba(fitur_scaled)) * 100
         return label_prediksi, confidence
     return None, None
-=======
+
 def visualisasi_hasil(image_path, knn_result, svm_result, output_path):
     """
     Membuat visualisasi hasil klasifikasi dari KNN dan SVM dan menyimpannya sebagai PNG
@@ -182,28 +181,34 @@ def visualisasi_hasil(image_path, knn_result, svm_result, output_path):
     image = cv2.imread(image_path)
     image = cv2.resize(image, (400, 400))
     
+    # Convert to HSV untuk visualisasi warna
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv_vis = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    
     # Buat canvas untuk output
-    output = np.zeros((600, 400, 3), dtype=np.uint8)
-    output[0:400, :] = image
+    output = np.zeros((600, 800, 3), dtype=np.uint8)
+    output[0:400, 0:400] = image  # Original image
+    output[0:400, 400:800] = hsv_vis  # HSV visualization
     
     # Tambahkan text hasil prediksi
     font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(output, f"Original", (10, 430), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, f"HSV Color Space", (410, 430), font, 0.7, (255,255,255), 2)
     
     # Hasil KNN
-    cv2.putText(output, "Hasil KNN:", (10, 430), font, 0.7, (255,255,255), 2)
-    cv2.putText(output, f"Prediksi: {knn_label}", (10, 460), font, 0.7, (255,255,255), 2)
-    cv2.putText(output, f"Confidence: {knn_confidence:.2f}%", (10, 490), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, "Hasil KNN:", (10, 470), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, f"Prediksi: {knn_label}", (10, 500), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, f"Confidence: {knn_confidence:.2f}%", (10, 530), font, 0.7, (255,255,255), 2)
     
     # Hasil SVM
-    cv2.putText(output, "Hasil SVM:", (10, 520), font, 0.7, (255,255,255), 2)
-    cv2.putText(output, f"Prediksi: {svm_label}", (10, 550), font, 0.7, (255,255,255), 2)
-    cv2.putText(output, f"Confidence: {svm_confidence:.2f}%", (10, 580), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, "Hasil SVM:", (410, 470), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, f"Prediksi: {svm_label}", (410, 500), font, 0.7, (255,255,255), 2)
+    cv2.putText(output, f"Confidence: {svm_confidence:.2f}%", (410, 530), font, 0.7, (255,255,255), 2)
     
     # Simpan gambar
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     cv2.imwrite(output_path, output)
     print(f"[INFO] Hasil visualisasi disimpan ke: {output_path}")
->>>>>>> 4eb9f0747efde222e37f34e7f7639e7f09cf84ff
 
 if __name__ == "__main__":
     # Gunakan absolute path untuk dataset
