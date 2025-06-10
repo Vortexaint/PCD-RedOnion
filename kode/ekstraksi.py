@@ -3,10 +3,11 @@ import numpy as np
 import os
 import csv
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from validasi_model import klasifikasi_knn, klasifikasi_svm, prediksi_single_image
 from skimage.feature import graycomatrix, graycoprops
-from ekstraksi_kombinasi import load_dataset_split
+from ekstraksi_kombinasi import load_dataset_split, load_and_combine_features, visualize_process
 
 # --- Ekstraksi Fitur Bentuk ---
 def ekstraksi_fitur_bentuk(image_path):
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     print("\nSVM Test Set Performance:")
     print(classification_report(y_test, y_pred_svm, target_names=labels))
 
-    # Visualize results
+    # Create confusion matrix plots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
     
     # Plot KNN confusion matrix
@@ -124,5 +125,27 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
     plt.savefig(os.path.join(output_dir, "confusion_matrices.png"))
     plt.close()
+
+    # Visualize process for one sample from each class
+    for class_name in labels:
+        test_folder = os.path.join(citra_path, "testing", class_name)
+        if os.path.exists(test_folder):
+            # Get first image from test folder
+            test_images = os.listdir(test_folder)
+            if test_images:
+                test_image = os.path.join(test_folder, test_images[0])
+                # Get prediction from both models
+                features = load_and_combine_features(test_image)
+                if features is not None:
+                    features = features.reshape(1, -1)
+                    features_scaled = StandardScaler().fit_transform(features)
+                    knn_pred = model_knn.predict(features_scaled)[0]
+                    svm_pred = model_svm.predict(features_scaled)[0]
+                    pred_text = f"KNN: {knn_pred}\nSVM: {svm_pred}"
+                    
+                    # Create visualization
+                    fig = visualize_process(test_image, pred_text)
+                    plt.savefig(os.path.join(output_dir, f"process_{class_name}.png"))
+                    plt.close()
 
     print("\n[INFO] Results saved to:", output_dir)
