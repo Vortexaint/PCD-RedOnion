@@ -183,6 +183,99 @@ def visualize_preprocessing(image_path):
     plt.tight_layout()
     return fig
 
+# --- Voting dan Display Hasil ---
+def get_voting_result(predictions):
+    """Menghitung hasil voting dari semua classifier"""
+    from collections import Counter
+    vote_counter = Counter(predictions)
+    return vote_counter.most_common(1)[0][0]  # Return label dengan vote terbanyak
+
+def display_classification_results(results_dict):
+    """Menampilkan hasil klasifikasi dalam format tabel"""
+    # Header
+    header = "| {:<15} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} |".format(
+        "Gambar", "Label", "Bentuk-KNN", "Bentuk-SVM", "Tekstur-KNN", "Tekstur-SVM", "Warna-KNN", "Warna-SVM", "Voting"
+    )
+    separator = "-" * len(header)
+    
+    print("\nHasil Klasifikasi:")
+    print(separator)
+    print(header)
+    print(separator)
+    
+    # Rows
+    for img_name, result in results_dict.items():
+        row = "| {:<15} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} |".format(
+            img_name[:15],
+            result['true_label'],
+            result['predictions'].get('Bentuk-KNN', '-'),
+            result['predictions'].get('Bentuk-SVM', '-'),
+            result['predictions'].get('Tekstur-KNN', '-'),
+            result['predictions'].get('Tekstur-SVM', '-'),
+            result['predictions'].get('Warna-KNN', '-'),
+            result['predictions'].get('Warna-SVM', '-'),
+            result['voting']
+        )
+        print(row)
+    print(separator)
+    
+    # Simpan hasil ke file
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "citra", "hasil_ekstraksi")
+    with open(os.path.join(output_dir, 'hasil_klasifikasi.txt'), 'w') as f:
+        f.write("Hasil Klasifikasi:\n")
+        f.write(separator + "\n")
+        f.write(header + "\n")
+        f.write(separator + "\n")
+        for img_name, result in results_dict.items():
+            row = "| {:<15} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} |".format(
+                img_name[:15],
+                result['true_label'],
+                result['predictions'].get('Bentuk-KNN', '-'),
+                result['predictions'].get('Bentuk-SVM', '-'),
+                result['predictions'].get('Tekstur-KNN', '-'),
+                result['predictions'].get('Tekstur-SVM', '-'),
+                result['predictions'].get('Warna-KNN', '-'),
+                result['predictions'].get('Warna-SVM', '-'),
+                result['voting']
+            )
+            f.write(row + "\n")
+        f.write(separator)
+
+def evaluate_single_image(image_path, models, scaler_bentuk, scaler_tekstur, scaler_warna):
+    """Evaluasi satu gambar dengan semua model"""
+    # Ekstrak fitur
+    fitur_bentuk = ekstraksi_fitur_bentuk(image_path)
+    fitur_tekstur = ekstraksi_fitur_tekstur(image_path)
+    fitur_warna = ekstraksi_fitur_warna(image_path)
+    
+    predictions = {}
+    
+    # Prediksi menggunakan fitur bentuk
+    if fitur_bentuk is not None:
+        fitur_bentuk = scaler_bentuk.transform([fitur_bentuk])
+        predictions['Bentuk-KNN'] = models['bentuk_knn'].predict(fitur_bentuk)[0]
+        predictions['Bentuk-SVM'] = models['bentuk_svm'].predict(fitur_bentuk)[0]
+    
+    # Prediksi menggunakan fitur tekstur
+    if fitur_tekstur is not None:
+        fitur_tekstur = scaler_tekstur.transform([fitur_tekstur])
+        predictions['Tekstur-KNN'] = models['tekstur_knn'].predict(fitur_tekstur)[0]
+        predictions['Tekstur-SVM'] = models['tekstur_svm'].predict(fitur_tekstur)[0]
+    
+    # Prediksi menggunakan fitur warna
+    if fitur_warna is not None:
+        fitur_warna = scaler_warna.transform([fitur_warna])
+        predictions['Warna-KNN'] = models['warna_knn'].predict(fitur_warna)[0]
+        predictions['Warna-SVM'] = models['warna_svm'].predict(fitur_warna)[0]
+    
+    # Hitung voting
+    if predictions:
+        voting_result = get_voting_result(list(predictions.values()))
+    else:
+        voting_result = "Tidak dapat menentukan"
+    
+    return predictions, voting_result
+
 # --- Main ---
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -194,7 +287,6 @@ if __name__ == "__main__":
     for label in labels:
         test_folder = os.path.join(citra_path, "testing", label)
         if os.path.exists(test_folder):
-            # Ambil gambar pertama dari setiap kelas
             test_images = os.listdir(test_folder)
             if test_images:
                 test_image = os.path.join(test_folder, test_images[0])
@@ -202,71 +294,70 @@ if __name__ == "__main__":
                 plt.savefig(os.path.join(citra_path, "hasil_ekstraksi", "visualisasi_kombinasi", f"preprocessing_{label}.png"))
                 plt.close()
 
-    # Load combined features from training and testing sets
-    print("\n[INFO] Loading combined features from designated folders...")
-    X_train, X_test, y_train, y_test = load_dataset_split(citra_path)
-
-    print("\n[INFO] Training models with combined features...")
+    # Train models untuk setiap fitur
+    print("\n[INFO] Training models untuk setiap fitur...")
     
-    # Train and evaluate KNN
-    print("\n=== KNN Model (Combined Features) ===")
-    model_knn = klasifikasi_knn(X_train, y_train, k=3)
-    y_pred_knn = model_knn.predict(X_test)
-    print("\nKNN Test Set Performance:")
-    print(classification_report(y_test, y_pred_knn, target_names=labels))
+    # Load dan training dataset bentuk
+    print("\n[INFO] Loading dan training dataset bentuk...")
+    dataset_path = os.path.join(citra_path, "training")
+    bentuk_features, bentuk_labels = load_dataset(dataset_path, ekstraksi_fitur_bentuk)
+    scaler_bentuk = StandardScaler().fit(bentuk_features)
+    bentuk_features_scaled = scaler_bentuk.transform(bentuk_features)
+    model_bentuk_knn = klasifikasi_knn(bentuk_features_scaled, bentuk_labels, k=3)
+    model_bentuk_svm = klasifikasi_svm(bentuk_features_scaled, bentuk_labels, kernel='linear')
     
-    # Train and evaluate SVM
-    print("\n=== SVM Model (Combined Features) ===")
-    model_svm = klasifikasi_svm(X_train, y_train, kernel='rbf')
-    y_pred_svm = model_svm.predict(X_test)
-    print("\nSVM Test Set Performance:")
-    print(classification_report(y_test, y_pred_svm, target_names=labels))
-
-    # Create confusion matrix plots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    # Load dan training dataset tekstur
+    print("\n[INFO] Loading dan training dataset tekstur...")
+    tekstur_features, tekstur_labels = load_dataset(dataset_path, ekstraksi_fitur_tekstur)
+    scaler_tekstur = StandardScaler().fit(tekstur_features)
+    tekstur_features_scaled = scaler_tekstur.transform(tekstur_features)
+    model_tekstur_knn = klasifikasi_knn(tekstur_features_scaled, tekstur_labels, k=3)
+    model_tekstur_svm = klasifikasi_svm(tekstur_features_scaled, tekstur_labels, kernel='linear')
     
-    # Plot KNN confusion matrix
-    ConfusionMatrixDisplay(
-        confusion_matrix=confusion_matrix(y_test, y_pred_knn, labels=labels),
-        display_labels=labels
-    ).plot(ax=ax1, cmap='Blues')
-    ax1.set_title('KNN Confusion Matrix (Combined Features)')
+    # Load dan training dataset warna
+    print("\n[INFO] Loading dan training dataset warna...")
+    warna_features, warna_labels = load_dataset(dataset_path, ekstraksi_fitur_warna)
+    scaler_warna = StandardScaler().fit(warna_features)
+    warna_features_scaled = scaler_warna.transform(warna_features)
+    model_warna_knn = klasifikasi_knn(warna_features_scaled, warna_labels, k=3)
+    model_warna_svm = klasifikasi_svm(warna_features_scaled, warna_labels, kernel='linear')
     
-    # Plot SVM confusion matrix
-    ConfusionMatrixDisplay(
-        confusion_matrix=confusion_matrix(y_test, y_pred_svm, labels=labels),
-        display_labels=labels
-    ).plot(ax=ax2, cmap='Blues')
-    ax2.set_title('SVM Confusion Matrix (Combined Features)')
+    # Kumpulkan semua model
+    models = {
+        'bentuk_knn': model_bentuk_knn,
+        'bentuk_svm': model_bentuk_svm,
+        'tekstur_knn': model_tekstur_knn,
+        'tekstur_svm': model_tekstur_svm,
+        'warna_knn': model_warna_knn,
+        'warna_svm': model_warna_svm
+    }
     
-    plt.tight_layout()
+    # Evaluasi testing dataset
+    print("\n[INFO] Evaluasi testing dataset...")
+    all_results = {}
     
-    # Save confusion matrix plots
+    for label in labels:
+        test_folder = os.path.join(citra_path, "testing", label)
+        if os.path.exists(test_folder):
+            for image_name in os.listdir(test_folder):
+                image_path = os.path.join(test_folder, image_name)
+                predictions, voting = evaluate_single_image(
+                    image_path, 
+                    models,
+                    scaler_bentuk,
+                    scaler_tekstur,
+                    scaler_warna
+                )
+                all_results[image_name] = {
+                    'true_label': label,
+                    'predictions': predictions,
+                    'voting': voting
+                }
+    
+    # Tampilkan hasil dalam format tabel
+    display_classification_results(all_results)
+    
+    # Create output directory if it doesn't exist
     output_dir = os.path.join(citra_path, "hasil_ekstraksi", "visualisasi_kombinasi")
     os.makedirs(output_dir, exist_ok=True)
-    plt.savefig(os.path.join(output_dir, "confusion_matrices.png"))
-    plt.close()
-
-    # Visualize process for one sample from each class
-    for class_name in labels:
-        test_folder = os.path.join(citra_path, "testing", class_name)
-        if os.path.exists(test_folder):
-            # Get first image from test folder
-            test_images = os.listdir(test_folder)
-            if test_images:
-                test_image = os.path.join(test_folder, test_images[0])
-                # Get prediction from both models
-                features = load_and_combine_features(test_image)
-                if features is not None:
-                    features = features.reshape(1, -1)
-                    features_scaled = StandardScaler().fit_transform(features)
-                    knn_pred = model_knn.predict(features_scaled)[0]
-                    svm_pred = model_svm.predict(features_scaled)[0]
-                    pred_text = f"KNN: {knn_pred}\nSVM: {svm_pred}"
-                    
-                    # Create visualization
-                    fig = visualize_process(test_image, pred_text)
-                    plt.savefig(os.path.join(output_dir, f"process_{class_name}.png"))
-                    plt.close()
-
     print("\n[INFO] Results saved to:", output_dir)
