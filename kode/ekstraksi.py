@@ -75,14 +75,135 @@ def load_dataset(folder_dataset, ekstraksi_fitur_func):
                 label_list.append(label)
     return np.array(data), np.array(label_list)
 
+# --- Visualisasi Tahapan Preprocessing Citra ---
+def visualize_preprocessing(image_path):
+    """Visualisasi tahapan preprocessing citra"""
+    # Baca gambar
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Error: tidak dapat membaca {image_path}")
+        return
+    
+    # Konversi BGR ke RGB untuk matplotlib
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Proses ekstraksi fitur bentuk
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Normal threshold
+    _, binary_normal = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+    
+    # Otsu threshold
+    _, binary_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+    # Kontur dari Otsu threshold
+    contours, _ = cv2.findContours(binary_otsu, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Gambar kontur
+    contour_img = rgb_image.copy()
+    cv2.drawContours(contour_img, contours, -1, (0, 255, 0), 2)
+    
+    # Proses ekstraksi fitur warna
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv_display = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+    
+    # Proses ekstraksi fitur tekstur
+    glcm = graycomatrix(gray, [1], [0], 256, symmetric=True, normed=True)
+    
+    # Buat figure dengan 3x3 subplot
+    fig = plt.figure(figsize=(15, 12))
+    plt.suptitle('Visualisasi Tahapan Preprocessing Citra', fontsize=16)
+    
+    # Original Image
+    ax1 = plt.subplot(331)
+    ax1.imshow(rgb_image)
+    ax1.set_title('Citra Asli')
+    ax1.axis('off')
+    
+    # Grayscale
+    ax2 = plt.subplot(332)
+    ax2.imshow(gray, cmap='gray')
+    ax2.set_title('Citra Grayscale')
+    ax2.axis('off')
+    
+    # Normal Binary
+    ax3 = plt.subplot(333)
+    ax3.imshow(binary_normal, cmap='gray')
+    ax3.set_title('Threshold Normal (127)')
+    ax3.axis('off')
+    
+    # Otsu Binary
+    ax4 = plt.subplot(334)
+    ax4.imshow(binary_otsu, cmap='gray')
+    ax4.set_title('Threshold Otsu')
+    ax4.axis('off')
+    
+    # Contour Detection
+    ax5 = plt.subplot(335)
+    ax5.imshow(contour_img)
+    ax5.set_title('Deteksi Kontur (Otsu)')
+    ax5.axis('off')
+    
+    # HSV Color Space
+    ax6 = plt.subplot(336)
+    ax6.imshow(hsv_display)
+    ax6.set_title('Ruang Warna HSV')
+    ax6.axis('off')
+    
+    # HSV Histogram
+    ax7 = plt.subplot(337)
+    hist_h = cv2.calcHist([hsv], [0], None, [180], [0, 180])
+    ax7.plot(hist_h)
+    ax7.set_title('Histogram HSV (Hue)')
+    
+    # RGB Mean Values
+    ax8 = plt.subplot(338)
+    means = cv2.mean(image)[:3]
+    ax8.bar(['B', 'G', 'R'], means[:3], color=['blue', 'green', 'red'])
+    ax8.set_title('Nilai Rata-rata RGB')
+    
+    # Shape Features
+    ax9 = plt.subplot(339)
+    shape_info = ""
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 100:
+            perimeter = cv2.arcLength(cnt, True)
+            x, y, w, h = cv2.boundingRect(cnt)
+            aspect_ratio = w/h
+            approx = cv2.approxPolyDP(cnt, 0.04 * perimeter, True)
+            sides = len(approx)
+            shape_info = f"Luas: {area:.0f}\nRasio: {aspect_ratio:.2f}\nSisi: {sides}"
+            break
+    
+    ax9.text(0.5, 0.5, shape_info, ha='center', va='center')
+    ax9.set_title('Fitur Bentuk')
+    ax9.axis('off')
+    
+    plt.tight_layout()
+    return fig
+
 # --- Main ---
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
     citra_path = os.path.join(base_dir, "..", "citra")
     labels = ["kertas", "organik", "plastik"]
 
+    # Tampilkan proses preprocessing untuk satu contoh dari setiap kelas
+    print("[INFO] Menampilkan visualisasi preprocessing...")
+    for label in labels:
+        test_folder = os.path.join(citra_path, "testing", label)
+        if os.path.exists(test_folder):
+            # Ambil gambar pertama dari setiap kelas
+            test_images = os.listdir(test_folder)
+            if test_images:
+                test_image = os.path.join(test_folder, test_images[0])
+                fig = visualize_preprocessing(test_image)
+                plt.savefig(os.path.join(citra_path, "hasil_ekstraksi", "visualisasi_kombinasi", f"preprocessing_{label}.png"))
+                plt.close()
+
     # Load combined features from training and testing sets
-    print("[INFO] Loading combined features from designated folders...")
+    print("\n[INFO] Loading combined features from designated folders...")
     X_train, X_test, y_train, y_test = load_dataset_split(citra_path)
 
     print("\n[INFO] Training models with combined features...")
