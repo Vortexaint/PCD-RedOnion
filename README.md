@@ -19,6 +19,32 @@ Proyek ini bertujuan untuk mengklasifikasikan sampah domestik ke dalam 3 kategor
 - Klasifikasi multi-kelas
 - Visualisasi hasil ekstraksi dan klasifikasi KNN
 
+## Alur Pemrosesan
+
+### Ekstraksi Fitur Bentuk
+```
+Citra RGB → Grayscale → Biner (Otsu) → Deteksi Kontur → Fitur Geometri
+                                                         - Luas
+                                                         - Rasio Aspek
+                                                         - Jumlah Sisi
+```
+
+### Ekstraksi Fitur Warna
+```
+Citra RGB → HSV → Histogram HSV (512 bin) → Fitur Warna
+        └─→ Mean RGB ────────────────────┘
+```
+
+### Ekstraksi Fitur Tekstur
+```
+Citra RGB → Grayscale → GLCM → Properti Haralick
+                              - Contrast
+                              - Dissimilarity
+                              - Homogeneity
+                              - Energy
+                              - Correlation
+```
+
 ## Teknologi yang Digunakan
 
 - Python 3.12
@@ -83,15 +109,24 @@ python .\kode\ekstraksi.py
 ## Pembagian Tugas
 
 - **152023070 Reeyhan Arif Saputra**
-  - Pengumpulan dataset
-  - Preprocessing citra dasar
-  - Ekstraksi fitur bentuk (`ekstraksi_bentuk.py`)
-  - Ekstraksi fitur warna (`ekstraksi_warna.py`)
-  - Ekstraksi fitur tekstur (`ekstraksi_tekstur.py`)
-  - Implementasi augmentasi data (`augmentasi_data.py`)
-  - Validasi model dan metrik (`validasi_model.py`)
-  - Implementasi klasifikasi dasar
-  - Pembuatan video demo
+  - Dataset dan Struktur:
+    - Pengumpulan dataset
+    - Pengaturan struktur folder proyek
+  - Preprocessing dan Ekstraksi:
+    - Preprocessing citra dasar
+    - Ekstraksi fitur bentuk (`ekstraksi_bentuk.py`)
+    - Ekstraksi fitur warna (`ekstraksi_warna.py`)
+    - Ekstraksi fitur tekstur (`ekstraksi_tekstur.py`)
+  - Model dan Validasi:
+    - Implementasi klasifikasi dasar
+    - Validasi model dan metrik (`validasi_model.py`)
+    - Pengembangan confusion matrix
+  - Augmentasi dan Visualisasi:
+    - Implementasi augmentasi data (`augmentasi_data.py`)
+    - Implementasi visualisasi preprocessing
+  - Integrasi:
+    - Implementasi integrasi antar-modul
+    - Pembuatan video demo
 
 - **152023061 M. Bakti Komara R. P.**
   - Pengembangan model klasifikasi multi-kelas
