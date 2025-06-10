@@ -50,9 +50,14 @@ citra/
 ## Hasil Ekstraksi Fitur
 
 Hasil ekstraksi fitur disimpan dalam folder `hasil_ekstraksi/` dalam format yang terstruktur:
-- `fitur_warna.npz`: Menyimpan fitur-fitur warna dari setiap gambar
+- `fitur_warna.csv` & `fitur_warna.npz`: Menyimpan fitur-fitur warna dari setiap gambar
 - `fitur_bentuk.csv`: Menyimpan fitur-fitur bentuk dari setiap gambar
 - `fitur_tekstur.npz`: Menyimpan fitur-fitur tekstur dari setiap gambar
+
+Visualisasi hasil ekstraksi fitur tersimpan dalam subfolder:
+- `visualisasi_warna/`: Hasil visualisasi ekstraksi fitur warna
+- `visualisasi_bentuk/`: Hasil visualisasi ekstraksi fitur bentuk
+- `visualisasi_tekstur/`: Hasil visualisasi ekstraksi fitur tekstur
 
 ## Cara Penggunaan
 
@@ -68,9 +73,11 @@ pip install -r requirements.txt
 
 3. Jalankan program ekstraksi fitur
 ```bash
-python kode/ekstraksi_warna.py;
-python kode/ekstraksi_bentuk.py;
-python kode/ekstraksi_tekstur.py
+python .\kode\augmentasi_data.py
+python .\kode\ekstraksi_warna.py
+python .\kode\ekstraksi_tekstur.py
+python .\kode\ekstraksi_bentuk.py
+python .\kode\ekstraksi.py
 ```
 
 ## Pembagian Tugas
@@ -78,23 +85,25 @@ python kode/ekstraksi_tekstur.py
 - **152023070 Reeyhan Arif Saputra**
   - Pengumpulan dataset
   - Preprocessing citra dasar
-  - Ekstraksi fitur bentuk
-  - Ekstraksi fitur warna
-  - Ekstraksi fitur tekstur
+  - Ekstraksi fitur bentuk (`ekstraksi_bentuk.py`)
+  - Ekstraksi fitur warna (`ekstraksi_warna.py`)
+  - Ekstraksi fitur tekstur (`ekstraksi_tekstur.py`)
+  - Implementasi augmentasi data (`augmentasi_data.py`)
+  - Validasi model dan metrik (`validasi_model.py`)
   - Implementasi klasifikasi dasar
   - Pembuatan video demo
 
 - **152023061 M. Bakti Komara R. P.**
-  - Pengembangan dan penambahan model klasifikasi
+  - Pengembangan model klasifikasi multi-kelas
+  - Implementasi kombinasi fitur (`ekstraksi_kombinasi.py`)
+  - Implementasi preprocessing tambahan
   - Pembuatan fitur live feed
-  - Implementasi variasi preprocessing
   - Pembuatan video demo
 
 - **152023055 Muhammad Kevin**
-  - Implementasi augmentasi data
-  - Validasi dataset
-  - Penyusunan dan pembuat laporan teknis lengkap
-  - Pengujian dan validasi model
+  - Implementasi augmentasi data (`augmentasi_data.py`)
+  - Penyusunan dokumentasi teknis
+  - Pengujian performa model
   - Lead pembuatan video demo
 
 ## Lisensi

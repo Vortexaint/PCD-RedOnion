@@ -1,106 +1,96 @@
 import numpy as np
+from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
-import os
 
-def load_features():
-    """Load extracted features from hasil_ekstraksi folder"""
-    hasil_dir = Path("citra/hasil_ekstraksi")
+def plot_confusion_matrix(y_true, y_pred, labels, title="Confusion Matrix"):
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    im = ax.imshow(cm, interpolation='nearest', cmap='Blues')
     
-    # Load color features
-    warna = np.load(hasil_dir / "fitur_warna.npz")
-    X_warna = warna['features']
-    y = warna['labels']
+    # Add colorbar
+    plt.colorbar(im)
     
-    # Load shape features
-    bentuk = np.load(hasil_dir / "fitur_bentuk.csv")
-    X_bentuk = np.genfromtxt(hasil_dir / "fitur_bentuk.csv", delimiter=',')
+    # Add labels
+    tick_marks = np.arange(len(labels))
+    ax.set_xticks(tick_marks)
+    ax.set_yticks(tick_marks)
+    ax.set_xticklabels(labels)
+    ax.set_yticklabels(labels)
     
-    # Load texture features
-    tekstur = np.load(hasil_dir / "fitur_tekstur.npz")
-    X_tekstur = tekstur['features']
+    # Add text annotations
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, format(cm[i, j], 'd'),
+                   ha="center", va="center",
+                   color="white" if cm[i, j] > thresh else "black")
     
-    # Combine all features
-    X = np.hstack([X_warna, X_bentuk, X_tekstur])
-    
-    return X, y
+    plt.title(title)
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()
+    plt.show()
 
-def split_data(X, y, test_size=0.2):
-    """Split data into training and testing sets"""
-    # Get indices for test set
-    np.random.seed(42)
-    indices = np.random.permutation(len(X))
-    test_size = int(test_size * len(X))
-    test_indices = indices[:test_size]
-    train_indices = indices[test_size:]
+def klasifikasi_knn(X, y, k=3):
+    model = KNeighborsClassifier(n_neighbors=k)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     
-    # Split data
-    X_train = X[train_indices]
-    X_test = X[test_indices]
-    y_train = y[train_indices]
-    y_test = y[test_indices]
+    # Fit model
+    model.fit(X_train, y_train)
     
-    return X_train, X_test, y_train, y_test
+    # Predictions
+    y_pred = model.predict(X_test)
+    
+    # Performance metrics
+    acc = accuracy_score(y_test, y_pred)
+    print("[KNN] Akurasi:", acc)
+    print("\n[KNN] Classification Report:")
+    print(classification_report(y_test, y_pred, target_names=['kertas', 'organik', 'plastik']))
+    
+    # Cross-validation
+    cv_scores = cross_val_score(model, X, y, cv=5)
+    print("\n[KNN] Cross-validation scores:", cv_scores)
+    print("[KNN] Mean CV accuracy: {:.3f} (+/- {:.3f})".format(cv_scores.mean(), cv_scores.std() * 2))
+    
+    # Plot confusion matrix
+    plot_confusion_matrix(y_test, y_pred, ['kertas', 'organik', 'plastik'], "KNN Confusion Matrix")
+    
+    return model
 
-def train_and_evaluate_model(X_train, X_test, y_train, y_test):
-    """Train KNN model and evaluate its performance"""
-    # Initialize and train KNN model
-    knn = KNeighborsClassifier(n_neighbors=5)
-    knn.fit(X_train, y_train)
+def klasifikasi_svm(X, y, kernel='rbf'):
+    model = SVC(kernel=kernel, probability=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     
-    # Make predictions
-    y_pred = knn.predict(X_test)
+    # Fit model
+    model.fit(X_train, y_train)
     
-    # Calculate accuracy
-    accuracy = knn.score(X_test, y_test)
+    # Predictions
+    y_pred = model.predict(X_test)
     
-    # Generate classification report
-    report = classification_report(y_test, y_pred, target_names=['Kertas', 'Organik', 'Plastik'])
+    # Performance metrics
+    acc = accuracy_score(y_test, y_pred)
+    print("[SVM] Akurasi:", acc)
+    print("\n[SVM] Classification Report:")
+    print(classification_report(y_test, y_pred, target_names=['kertas', 'organik', 'plastik']))
     
-    # Generate confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
+    # Cross-validation
+    cv_scores = cross_val_score(model, X, y, cv=5)
+    print("\n[SVM] Cross-validation scores:", cv_scores)
+    print("[SVM] Mean CV accuracy: {:.3f} (+/- {:.3f})".format(cv_scores.mean(), cv_scores.std() * 2))
     
-    return accuracy, report, cm, y_pred
+    # Plot confusion matrix
+    plot_confusion_matrix(y_test, y_pred, ['kertas', 'organik', 'plastik'], "SVM Confusion Matrix")
+    
+    return model
 
-def plot_confusion_matrix(cm):
-    """Plot confusion matrix as heatmap"""
-    plt.figure(figsize=(10,8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-    plt.title('Confusion Matrix')
-    plt.xlabel('Predicted')
-    plt.ylabel('Actual')
-    plt.xticks([0.5, 1.5, 2.5], ['Kertas', 'Organik', 'Plastik'])
-    plt.yticks([0.5, 1.5, 2.5], ['Kertas', 'Organik', 'Plastik'])
-    
-    # Save plot
-    save_dir = Path("citra/hasil_ekstraksi/validasi")
-    save_dir.mkdir(exist_ok=True)
-    plt.savefig(save_dir / "confusion_matrix.png")
-    plt.close()
-
-def main():
-    print("Loading features...")
-    X, y = load_features()
-    
-    print("Splitting data...")
-    X_train, X_test, y_train, y_test = split_data(X, y)
-    
-    print("Training and evaluating model...")
-    accuracy, report, cm, y_pred = train_and_evaluate_model(X_train, X_test, y_train, y_test)
-    
-    print("\nModel Evaluation Results:")
-    print("-" * 50)
-    print(f"Accuracy: {accuracy:.2%}")
-    print("\nClassification Report:")
-    print(report)
-    
-    print("\nGenerating confusion matrix plot...")
-    plot_confusion_matrix(cm)
-    
-    print("\nValidation complete! Results have been saved to citra/hasil_ekstraksi/validasi/")
-
-if __name__ == "__main__":
-    main()
+def prediksi_single_image(model, fitur, return_proba=False):
+    fitur = np.array(fitur).reshape(1, -1)
+    if return_proba and hasattr(model, 'predict_proba'):
+        # Return class probabilities for each class
+        probas = model.predict_proba(fitur)[0]
+        classes = ['kertas', 'organik', 'plastik']
+        return dict(zip(classes, probas))
+    return model.predict(fitur)[0]
