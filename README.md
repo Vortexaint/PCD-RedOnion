@@ -140,6 +140,31 @@ python .\kode\ekstraksi.py
   - Pengujian performa model
   - Lead pembuatan video demo
 
+# Akurasi
+
+Model KNN:
+Fitur Bentuk: 53.13% (0.53125)
+Fitur Tekstur: 83.33% (0.8333)
+Fitur Warna: 95.83% (0.9583)
+Model SVM:
+Fitur Bentuk: 26.04% (0.2604)
+Fitur Tekstur: 70.83% (0.7083)
+Fitur Warna: 97.92% (0.9792)
+Perbandingan:
+
+Fitur Bentuk:
+
+KNN lebih baik (53.13%)
+SVM lebih rendah (26.04%)
+Fitur Tekstur:
+
+KNN lebih baik (83.33%)
+SVM cukup baik (70.83%)
+Fitur Warna:
+
+SVM sedikit lebih baik (97.92%)
+KNN juga sangat baik (95.83%)
+
 ## Lisensi
 
                                  Apache License
