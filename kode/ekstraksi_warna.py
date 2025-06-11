@@ -1,3 +1,12 @@
+# ==============================================================================
+# Modul: ekstraksi_warna.py
+# Deskripsi: Modul untuk ekstraksi fitur warna dari citra sampah
+# Fungsi: 
+# - Ekstraksi histogram HSV
+# - Perhitungan rata-rata RGB
+# - Normalisasi fitur warna
+# ==============================================================================
+
 import cv2
 import numpy as np
 import os
@@ -5,6 +14,16 @@ import csv
 from validasi_model import klasifikasi_knn, klasifikasi_svm, prediksi_single_image
 
 def ekstraksi_fitur_warna(image_path, show_conversion=False):
+    """
+    Mengekstrak fitur warna dari citra menggunakan histogram HSV dan mean RGB.
+    
+    Args:
+        image_path (str): Path ke file citra
+        show_conversion (bool): Flag untuk menampilkan visualisasi konversi
+        
+    Returns:
+        numpy.array: Gabungan histogram HSV dan mean RGB atau None jika gagal
+    """
     image = cv2.imread(image_path)
     if image is None:
         print(f"Error: tidak dapat membaca {image_path}")

@@ -1,3 +1,12 @@
+# ==============================================================================
+# Modul: ekstraksi_tekstur.py
+# Deskripsi: Modul untuk ekstraksi fitur tekstur menggunakan GLCM
+# Fungsi: 
+# - Konversi ke grayscale
+# - Perhitungan matriks GLCM
+# - Ekstraksi properti Haralick (contrast, dissimilarity, dll)
+# ==============================================================================
+
 import cv2
 import numpy as np
 from skimage.feature import graycomatrix, graycoprops
@@ -5,6 +14,17 @@ import os
 from validasi_model import klasifikasi_knn, klasifikasi_svm, prediksi_single_image
 
 def ekstraksi_fitur_tekstur(image_path, show_conversion=False):
+    """
+    Mengekstrak fitur tekstur dari citra menggunakan GLCM.
+    
+    Args:
+        image_path (str): Path ke file citra
+        show_conversion (bool): Flag untuk menampilkan visualisasi konversi
+        
+    Returns:
+        numpy.array: Vektor fitur tekstur [contrast, dissimilarity, homogeneity, 
+                    energy, correlation] atau None jika gagal
+    """
     image = cv2.imread(image_path)
     if image is None:
         print(f"Error: tidak dapat membaca {image_path}")

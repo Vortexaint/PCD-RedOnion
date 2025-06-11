@@ -10,7 +10,15 @@ from ekstraksi_kombinasi import visualize_process
 
 def visualize_feature_extraction(image_path, feature_type, output_dir):
     """
-    Visualisasi proses ekstraksi fitur dan menyimpan hasilnya
+    Membuat dan menyimpan visualisasi proses ekstraksi fitur.
+    
+    Args:
+        image_path (str): Path ke file citra input
+        feature_type (str): Jenis fitur ('bentuk', 'warna', atau 'tekstur')
+        output_dir (str): Direktori untuk menyimpan hasil visualisasi
+        
+    Returns:
+        None: File visualisasi akan disimpan di output_dir
     """
     # Baca gambar
     image = cv2.imread(image_path)
@@ -128,6 +136,12 @@ def visualize_feature_extraction(image_path, feature_type, output_dir):
 def visualize_all_features(dataset_path):
     """
     Melakukan visualisasi untuk semua fitur pada dataset
+    
+    Args:
+        dataset_path (str): Path ke direktori dataset
+        
+    Returns:
+        None: Proses visualisasi dilakukan untuk setiap gambar dalam dataset
     """
     # Buat direktori output
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

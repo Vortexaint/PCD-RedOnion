@@ -6,12 +6,38 @@ import random
 import shutil
 
 def load_image(image_path):
+    """
+    Membaca citra dari file.
+    
+    Args:
+        image_path (str/Path): Path ke file citra
+        
+    Returns:
+        numpy.array: Array citra atau None jika gagal
+    """
     return cv2.imread(str(image_path))
 
 def save_image(image, save_path):
+    """
+    Menyimpan citra ke file.
+    
+    Args:
+        image (numpy.array): Array citra untuk disimpan
+        save_path (str/Path): Path tujuan penyimpanan
+    """
     cv2.imwrite(str(save_path), image)
 
 def rotate_image(image, angle):
+    """
+    Merotasi citra dengan sudut tertentu.
+    
+    Args:
+        image (numpy.array): Array citra input
+        angle (float): Sudut rotasi dalam derajat
+        
+    Returns:
+        numpy.array: Citra hasil rotasi
+    """
     # Get image dimensions
     height, width = image.shape[:2]
     # Calculate the center of the image
@@ -25,6 +51,16 @@ def rotate_image(image, angle):
     return rotated_image
 
 def mirror_image(image, direction='horizontal'):
+    """
+    Mencerminkan citra secara horizontal atau vertikal.
+    
+    Args:
+        image (numpy.array): Array citra input
+        direction (str): Arah pencerminan ('horizontal' atau 'vertical')
+        
+    Returns:
+        numpy.array: Citra hasil pencerminan
+    """
     if direction == 'horizontal':
         return cv2.flip(image, 1)  # 1 for horizontal flip
     else:

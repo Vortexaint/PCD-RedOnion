@@ -11,12 +11,18 @@ from skimage.feature import graycomatrix, graycoprops
 
 def load_and_combine_features(image_path):
     """
-    Extract and combine features from a single image
-    Returns a feature vector with fixed length:
-    - Color features (515): HSV histogram (512) + RGB means (3)
-    - Texture features (20): 5 GLCM properties × 4 angles
-    - Shape features (3): area, aspect ratio, sides
-    Total: 538 features
+    Mengekstrak dan menggabungkan semua fitur dari satu citra.
+    
+    Total fitur yang dihasilkan (538):
+    - Fitur warna (515): Histogram HSV (512) + Mean RGB (3)
+    - Fitur tekstur (20): 5 properti GLCM × 4 sudut
+    - Fitur bentuk (3): luas, rasio aspek, jumlah sisi
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        numpy.array: Vektor fitur gabungan atau None jika gagal
     """
     try:
         # Extract color features (HSV histogram + RGB means = 515 features)

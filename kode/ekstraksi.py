@@ -11,6 +11,15 @@ from ekstraksi_kombinasi import load_dataset_split, load_and_combine_features, v
 
 # --- Ekstraksi Fitur Bentuk ---
 def ekstraksi_fitur_bentuk(image_path):
+    """
+    Mengekstrak fitur geometri dari citra.
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        list: [luas, rasio_aspek, jumlah_sisi] atau None jika gagal
+    """
     image = cv2.imread(image_path)
     if image is None:
         return None
@@ -31,6 +40,15 @@ def ekstraksi_fitur_bentuk(image_path):
 
 # --- Ekstraksi Fitur Tekstur ---
 def ekstraksi_fitur_tekstur(image_path):
+    """
+    Mengekstrak fitur tekstur dari citra menggunakan Gray Level Co-occurrence Matrix (GLCM).
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        np.array: Fitur tekstur yang diekstrak atau None jika gagal
+    """
     image = cv2.imread(image_path)
     if image is None:
         return None
@@ -47,6 +65,15 @@ def ekstraksi_fitur_tekstur(image_path):
 
 # --- Ekstraksi Fitur Warna ---
 def ekstraksi_fitur_warna(image_path):
+    """
+    Mengekstrak fitur warna dari citra.
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        np.array: Fitur warna yang diekstrak atau None jika gagal
+    """
     image = cv2.imread(image_path)
     if image is None:
         return None
@@ -61,6 +88,16 @@ def ekstraksi_fitur_warna(image_path):
 
 # --- Load Dataset ---
 def load_dataset(folder_dataset, ekstraksi_fitur_func):
+    """
+    Memuat dataset dari folder dan mengekstrak fitur menggunakan fungsi yang diberikan.
+    
+    Args:
+        folder_dataset (str): Path ke folder dataset
+        ekstraksi_fitur_func (function): Fungsi untuk mengekstrak fitur dari citra
+        
+    Returns:
+        tuple: (data, label_list) - data fitur dan daftar label
+    """
     data = []
     label_list = []
     for label in os.listdir(folder_dataset):

@@ -132,7 +132,6 @@ python .\kode\ekstraksi.py
   - Pengembangan model klasifikasi multi-kelas
   - Implementasi kombinasi fitur (`ekstraksi_kombinasi.py`)
   - Implementasi preprocessing tambahan
-  - Pembuatan fitur live feed
   - Pembuatan video demo
 
 - **152023055 Muhammad Kevin**

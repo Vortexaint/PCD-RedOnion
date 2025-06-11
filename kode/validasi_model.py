@@ -6,6 +6,18 @@ from sklearn.metrics import classification_report, accuracy_score, confusion_mat
 import matplotlib.pyplot as plt
 
 def plot_confusion_matrix(y_true, y_pred, labels, title="Confusion Matrix"):
+    """
+    Membuat visualisasi confusion matrix.
+    
+    Args:
+        y_true (array): Label sebenarnya
+        y_pred (array): Label hasil prediksi
+        labels (list): Daftar nama kelas
+        title (str): Judul plot
+        
+    Returns:
+        None: Plot akan ditampilkan atau disimpan
+    """
     cm = confusion_matrix(y_true, y_pred, labels=labels)
     fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.imshow(cm, interpolation='nearest', cmap='Blues')
@@ -35,6 +47,17 @@ def plot_confusion_matrix(y_true, y_pred, labels, title="Confusion Matrix"):
     plt.show()
 
 def klasifikasi_knn(X, y, k=3):
+    """
+    Melakukan klasifikasi menggunakan KNN (K-Nearest Neighbors).
+    
+    Args:
+        X (array): Fitur input
+        y (array): Label output
+        k (int): Jumlah neighbor terdekat yang akan dipertimbangkan
+        
+    Returns:
+        model: Model KNN yang telah dilatih
+    """
     model = KNeighborsClassifier(n_neighbors=k)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     
@@ -61,6 +84,17 @@ def klasifikasi_knn(X, y, k=3):
     return model
 
 def klasifikasi_svm(X, y, kernel='rbf'):
+    """
+    Melakukan klasifikasi menggunakan SVM (Support Vector Machine).
+    
+    Args:
+        X (array): Fitur input
+        y (array): Label output
+        kernel (str): Jenis kernel yang akan digunakan (contoh: 'linear', 'rbf', 'poly')
+        
+    Returns:
+        model: Model SVM yang telah dilatih
+    """
     model = SVC(kernel=kernel, probability=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
     
@@ -87,6 +121,17 @@ def klasifikasi_svm(X, y, kernel='rbf'):
     return model
 
 def prediksi_single_image(model, fitur, return_proba=False):
+    """
+    Melakukan prediksi untuk satu gambar/fitur tunggal.
+    
+    Args:
+        model: Model yang telah dilatih (KNN atau SVM)
+        fitur (array): Fitur gambar yang akan diprediksi
+        return_proba (bool): Jika True, akan mengembalikan probabilitas untuk setiap kelas
+        
+    Returns:
+        Prediksi kelas untuk gambar/fitur tersebut
+    """
     fitur = np.array(fitur).reshape(1, -1)
     if return_proba and hasattr(model, 'predict_proba'):
         # Return class probabilities for each class
