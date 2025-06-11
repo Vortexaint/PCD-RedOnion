@@ -1,12 +1,3 @@
-# ==============================================================================
-# Modul: ekstraksi_warna.py
-# Deskripsi: Modul untuk ekstraksi fitur warna dari citra sampah
-# Fungsi: 
-# - Ekstraksi histogram HSV
-# - Perhitungan rata-rata RGB
-# - Normalisasi fitur warna
-# ==============================================================================
-
 import cv2
 import numpy as np
 import os

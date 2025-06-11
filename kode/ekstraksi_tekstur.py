@@ -1,12 +1,3 @@
-# ==============================================================================
-# Modul: ekstraksi_tekstur.py
-# Deskripsi: Modul untuk ekstraksi fitur tekstur menggunakan GLCM
-# Fungsi: 
-# - Konversi ke grayscale
-# - Perhitungan matriks GLCM
-# - Ekstraksi properti Haralick (contrast, dissimilarity, dll)
-# ==============================================================================
-
 import cv2
 import numpy as np
 from skimage.feature import graycomatrix, graycoprops
