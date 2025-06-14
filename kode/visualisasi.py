@@ -6,7 +6,7 @@ from skimage.feature import graycomatrix, graycoprops
 from ekstraksi_bentuk import ekstraksi_fitur_bentuk
 from ekstraksi_tekstur import ekstraksi_fitur_tekstur
 from ekstraksi_warna import ekstraksi_fitur_warna
-from ekstraksi_kombinasi import visualize_process
+from visualisasi import visualize_process, visualize_texture_shape_combination
 
 def visualize_feature_extraction(image_path, feature_type, output_dir):
     """
@@ -130,6 +130,45 @@ def visualize_feature_extraction(image_path, feature_type, output_dir):
         visualize_texture_color_combination(image_path, output_dir)
         return
     
+    elif feature_type == "kombinasi-tekstur-bentuk":
+        # Visualisasi ekstraksi fitur tekstur dan bentuk
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        # Hitung fitur GLCM
+        distances = [1]
+        angles = [0, np.pi/4, np.pi/2, 3*np.pi/4]
+        glcm = graycomatrix(gray, distances, angles, 256, symmetric=True, normed=True)
+        
+        # Plot citra asli
+        plt.subplot(221)
+        plt.imshow(rgb_image)
+        plt.title('Citra Asli')
+        plt.axis('off')
+        
+        # Plot citra grayscale
+        plt.subplot(222)
+        plt.imshow(gray, cmap='gray')
+        plt.title('Citra Grayscale')
+        plt.axis('off')
+        
+        # Plot matriks GLCM
+        plt.subplot(223)
+        plt.imshow(glcm[:, :, 0, 0], cmap='viridis')
+        plt.title('GLCM Matrix (d=1, θ=0°)')
+        plt.colorbar()
+        plt.axis('off')
+        
+        # Plot kontur
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contour_img = rgb_image.copy()
+        cv2.drawContours(contour_img, contours, -1, (0, 255, 0), 2)
+        plt.subplot(224)
+        plt.imshow(contour_img)
+        plt.title('Deteksi Kontur')
+        plt.axis('off')
+        
     plt.tight_layout()
     
     # Simpan visualisasi
