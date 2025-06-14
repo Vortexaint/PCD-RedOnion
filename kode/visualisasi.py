@@ -125,6 +125,11 @@ def visualize_feature_extraction(image_path, feature_type, output_dir):
         plt.bar(['Blue', 'Green', 'Red'], means[:3], color=['blue', 'green', 'red'])
         plt.title('Nilai Rata-rata RGB')
         
+    elif feature_type == "kombinasi-tekstur-warna":
+        # Panggil fungsi visualisasi kombinasi tekstur dan warna
+        visualize_texture_color_combination(image_path, output_dir)
+        return
+    
     plt.tight_layout()
     
     # Simpan visualisasi
@@ -146,10 +151,16 @@ def visualize_all_features(dataset_path):
     # Buat direktori output
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     output_base = os.path.join(base_dir, "citra", "hasil_ekstraksi")
+      # List of all feature types including texture-color combination
+    feature_types = ["bentuk", "tekstur", "warna", "kombinasi-tekstur-warna"]
     
-    feature_types = ["bentuk", "tekstur", "warna"]
     for feature_type in feature_types:
-        output_dir = os.path.join(output_base, f"visualisasi_{feature_type}")
+        # Setup output directory
+        if feature_type == "kombinasi-tekstur-warna":
+            output_dir = os.path.join(output_base, "visualisasi_tekstur_warna")
+        else:
+            output_dir = os.path.join(output_base, f"visualisasi_{feature_type}")
+            
         os.makedirs(output_dir, exist_ok=True)
         print(f"\nMemproses visualisasi fitur {feature_type}...")
         
@@ -164,10 +175,10 @@ def visualize_all_features(dataset_path):
                     image_path = os.path.join(category_path, image_name)
                     visualize_feature_extraction(image_path, feature_type, output_dir)
 
-    # Visualisasi kombinasi fitur
+    # Visualisasi kombinasi semua fitur
     kombinasi_dir = os.path.join(output_base, "visualisasi_kombinasi")
     os.makedirs(kombinasi_dir, exist_ok=True)
-    print("\nMemproses visualisasi kombinasi fitur...")
+    print("\nMemproses visualisasi kombinasi semua fitur...")
     
     # Ambil satu sampel dari setiap kategori untuk visualisasi kombinasi
     for category in ["kertas", "organik", "plastik"]:
@@ -177,24 +188,171 @@ def visualize_all_features(dataset_path):
             if images:
                 image_path = os.path.join(category_path, images[0])
                 fig = visualize_process(image_path)
-                output_path = os.path.join(kombinasi_dir, f"kombinasi_{category}.png")
+                output_path = os.path.join(kombinasi_dir, f"preprocessing_{category}.png")
                 fig.savefig(output_path)
                 plt.close(fig)
-                print(f"Visualisasi kombinasi untuk {category} disimpan ke: {output_path}")
+                print(f"Visualisasi preprocessing untuk {category} disimpan ke: {output_path}")
+
+def visualize_texture_color_combination(image_path, output_dir):
+    """
+    Membuat dan menyimpan visualisasi kombinasi fitur tekstur dan warna.
+    
+    Args:
+        image_path (str): Path ke file citra input
+        output_dir (str): Direktori untuk menyimpan hasil visualisasi
+        
+    Returns:
+        None: File visualisasi akan disimpan di output_dir
+    """
+    # Baca gambar
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Error: tidak dapat membaca {image_path}")
+        return
+    
+    # Konversi ke RGB untuk display
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Konversi ke HSV untuk analisis warna
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    # Buat figure dengan ukuran lebih besar
+    fig = plt.figure(figsize=(20, 15))
+    plt.suptitle('Visualisasi Kombinasi Fitur Tekstur dan Warna', fontsize=16)
+    
+    # 1. Tampilkan citra asli
+    plt.subplot(331)
+    plt.imshow(rgb_image)
+    plt.title('Citra Asli (RGB)')
+    plt.axis('off')
+    
+    # 2. Tampilkan citra HSV
+    plt.subplot(332)
+    plt.imshow(hsv_image)
+    plt.title('Citra HSV')
+    plt.axis('off')
+    
+    # 3. Tampilkan histogram HSV
+    plt.subplot(333)
+    colors = ('h', 's', 'v')
+    for i, col in enumerate(colors):
+        hist = cv2.calcHist([hsv_image], [i], None, [256], [0, 256])
+        plt.plot(hist, color=['r', 'g', 'b'][i], label=col.upper())
+    plt.title('Histogram HSV')
+    plt.legend()
+    plt.xlabel('Nilai Bin')
+    plt.ylabel('Frekuensi')
+    
+    # 4. Tampilkan citra grayscale untuk tekstur
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    plt.subplot(334)
+    plt.imshow(gray, cmap='gray')
+    plt.title('Citra Grayscale')
+    plt.axis('off')
+    
+    # 5. Tampilkan GLCM untuk berbagai sudut
+    distances = [1]
+    angles = [0, np.pi/4, np.pi/2, 3*np.pi/4]
+    glcm = graycomatrix(gray, distances, angles, 256, symmetric=True, normed=True)
+    
+    # 6. Tampilkan matriks GLCM untuk setiap sudut
+    titles = ['GLCM 0°', 'GLCM 45°', 'GLCM 90°', 'GLCM 135°']
+    for i in range(4):
+        plt.subplot(335 + i)
+        plt.imshow(glcm[:, :, 0, i], cmap='viridis')
+        plt.title(titles[i])
+        plt.colorbar()
+        plt.axis('off')
+    
+    # 7. Tampilkan properti GLCM
+    props = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation']
+    glcm_props = {}
+    for prop in props:
+        glcm_props[prop] = [graycoprops(glcm, prop)[0, angle_idx] for angle_idx in range(4)]
+    
+    ax = plt.subplot(339)
+    x = np.arange(len(props))
+    width = 0.15
+    for i in range(4):
+        values = [glcm_props[prop][i] for prop in props]
+        plt.bar(x + i*width, values, width, label=f'{titles[i]}')
+    
+    plt.xlabel('Properti GLCM')
+    plt.ylabel('Nilai')
+    plt.title('Properti GLCM untuk Setiap Sudut')
+    plt.xticks(x + width*1.5, props, rotation=45)
+    plt.legend()
+    
+    # Simpan visualisasi
+    plt.tight_layout()
+    output_path = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(image_path))[0]}_kombinasi.png")
+    plt.savefig(output_path, bbox_inches='tight', dpi=300)
+    plt.close()
+    
+    print(f"Visualisasi disimpan di: {output_path}")
 
 if __name__ == "__main__":
     try:
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        dataset_path = os.path.join(base_dir, "citra", "training")
+        import argparse
         
-        print("Memulai proses visualisasi fitur...")
+        # Setup argument parser
+        parser = argparse.ArgumentParser(description='Visualisasi Fitur Citra Sampah')
+        parser.add_argument('--dataset', type=str, 
+                          help='Path ke direktori dataset (default: direktori training)',
+                          default=None)
+        parser.add_argument('--feature-type', type=str, 
+                          choices=['bentuk', 'tekstur', 'warna', 'kombinasi-tekstur-warna', 'all'],
+                          help='Jenis fitur yang akan divisualisasikan',
+                          default='all')
+        parser.add_argument('--sample', type=int,
+                          help='Jumlah sampel per kategori (default: 3)',
+                          default=3)
+        parser.add_argument('--category', type=str,
+                          choices=['kertas', 'organik', 'plastik', 'all'],
+                          help='Kategori sampah yang akan divisualisasikan',
+                          default='all')
+        
+        args = parser.parse_args()
+        
+        # Setup paths
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        dataset_path = args.dataset or os.path.join(base_dir, "citra", "training")
+        
+        print("\n=== Visualisasi Fitur Citra Sampah ===")
         print(f"Base directory: {base_dir}")
         print(f"Dataset path: {dataset_path}")
+        print(f"Jenis fitur: {args.feature_type}")
+        print(f"Jumlah sampel: {args.sample}")
+        print(f"Kategori: {args.category}")
+        print("="*40 + "\n")
         
         if not os.path.exists(dataset_path):
-            raise Exception(f"Dataset path does not exist: {dataset_path}")
+            raise Exception(f"Dataset path tidak ditemukan: {dataset_path}")
+        
+        # Setup output directory
+        output_base = os.path.join(base_dir, "citra", "hasil_ekstraksi")
+        
+        if args.feature_type == 'all':
+            visualize_all_features(dataset_path)
+        else:
+            # Process specific feature type and category
+            output_dir = os.path.join(output_base, f"visualisasi_{args.feature_type}")
+            os.makedirs(output_dir, exist_ok=True)
             
-        visualize_all_features(dataset_path)
+            categories = ['kertas', 'organik', 'plastik'] if args.category == 'all' else [args.category]
+            
+            for category in categories:
+                category_path = os.path.join(dataset_path, category)
+                if os.path.exists(category_path):
+                    print(f"\nMemproses kategori {category}...")
+                    images = os.listdir(category_path)[:args.sample]
+                    for image_name in images:
+                        image_path = os.path.join(category_path, image_name)
+                        visualize_feature_extraction(image_path, args.feature_type, output_dir)
+                else:
+                    print(f"Warning: Kategori {category} tidak ditemukan di {category_path}")
+        
+        print("\nProses visualisasi selesai!")
         print("\nProses visualisasi selesai!")
         
     except Exception as e:

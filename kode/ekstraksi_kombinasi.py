@@ -61,6 +61,50 @@ def load_and_combine_features(image_path):
         print(f"Error processing {image_path}: {str(e)}")
         return None
 
+def combine_texture_color_features(image_path):
+    """
+    Mengekstrak dan menggabungkan fitur tekstur dan warna dari satu citra.
+    
+    Total fitur yang dihasilkan (535):
+    - Fitur warna (515): Histogram HSV (512) + Mean RGB (3)
+    - Fitur tekstur (20): 5 properti GLCM × 4 sudut
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        numpy.array: Vektor fitur gabungan tekstur dan warna atau None jika gagal
+    """
+    try:
+        # Extract color features (HSV histogram + RGB means = 515 features)
+        color_features = ekstraksi_fitur_warna(image_path)
+        if color_features is None or len(color_features) != 515:
+            print(f"Warning: Invalid color features for {image_path}")
+            return None
+        
+        # Extract texture features (5 GLCM properties × 4 angles = 20 features)
+        texture_features = ekstraksi_fitur_tekstur(image_path)
+        if texture_features is None or len(texture_features) != 20:
+            print(f"Warning: Invalid texture features for {image_path}")
+            return None
+            
+        # Combine texture and color features
+        combined_features = np.concatenate([
+            color_features.flatten(),
+            texture_features.flatten()
+        ])
+        
+        # Ensure we have the expected number of features (515 + 20 = 535)
+        if len(combined_features) != 535:
+            print(f"Warning: Unexpected feature length {len(combined_features)} for {image_path}")
+            return None
+            
+        return combined_features.astype(np.float64)
+        
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        return None
+
 def load_dataset_split(base_path):
     """
     Load training and testing datasets from designated folders
@@ -200,31 +244,109 @@ def visualize_process(image_path, prediction=None):
     plt.tight_layout()
     return fig
 
+def save_texture_color_features(base_path):
+    """
+    Mengekstrak dan menyimpan fitur tekstur dan warna dari dataset
+    """
+    # Initialize lists for features and labels
+    X_train_tc, y_train_tc = [], []
+    X_test_tc, y_test_tc = [], []
+    
+    classes = ['kertas', 'organik', 'plastik']
+    
+    # Process training data
+    print("\nMengekstrak fitur tekstur dan warna dari data training...")
+    training_path = os.path.join(base_path, 'training')
+    for class_name in classes:
+        class_path = os.path.join(training_path, class_name)
+        if not os.path.exists(class_path):
+            print(f"Warning: Training path {class_path} tidak ditemukan")
+            continue
+            
+        for img_file in os.listdir(class_path):
+            img_path = os.path.join(class_path, img_file)
+            features = combine_texture_color_features(img_path)
+            if features is not None:
+                X_train_tc.append(features)
+                y_train_tc.append(class_name)
+    
+    # Process testing data
+    print("\nMengekstrak fitur tekstur dan warna dari data testing...")
+    testing_path = os.path.join(base_path, 'testing')
+    for class_name in classes:
+        class_path = os.path.join(testing_path, class_name)
+        if not os.path.exists(class_path):
+            print(f"Warning: Testing path {class_path} tidak ditemukan")
+            continue
+            
+        for img_file in os.listdir(class_path):
+            img_path = os.path.join(class_path, img_file)
+            features = combine_texture_color_features(img_path)
+            if features is not None:
+                X_test_tc.append(features)
+                y_test_tc.append(class_name)
+    
+    # Convert to numpy arrays
+    X_train_tc = np.array(X_train_tc)
+    X_test_tc = np.array(X_test_tc)
+    y_train_tc = np.array(y_train_tc)
+    y_test_tc = np.array(y_test_tc)
+    
+    print(f"\nStatistik dataset tekstur-warna:")
+    print(f"Jumlah sampel training: {len(X_train_tc)}")
+    print(f"Jumlah sampel testing: {len(X_test_tc)}")
+    print(f"Dimensi fitur: {X_train_tc.shape[1]}")
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_train_tc_scaled = scaler.fit_transform(X_train_tc)
+    X_test_tc_scaled = scaler.transform(X_test_tc)
+    
+    return X_train_tc_scaled, X_test_tc_scaled, y_train_tc, y_test_tc
+
 if __name__ == "__main__":
-    print("Loading and combining features from training and testing sets...")
+    print("Memulai proses ekstraksi dan klasifikasi fitur...")
     
     # Get base path
     base_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'citra')
+    output_dir = os.path.join(base_path, 'hasil_ekstraksi')
+    os.makedirs(output_dir, exist_ok=True)
     
-    # Load and combine features
+    # 1. Ekstraksi dan klasifikasi semua fitur gabungan
+    print("\n=== Ekstraksi dan Klasifikasi Semua Fitur ===")
     X_train, X_test, y_train, y_test = load_dataset_split(base_path)
     
-    print("\nDataset Statistics:")
-    print(f"Training samples: {X_train.shape[0]}")
-    print(f"Testing samples: {X_test.shape[0]}")
-    print(f"Feature dimension: {X_train.shape[1]}")
-    
-    print("\nTraining KNN classifier...")
+    print("\nMelatih classifier KNN untuk semua fitur...")
     model_knn = klasifikasi_knn(X_train, y_train, k=3)
     y_pred_knn = model_knn.predict(X_test)
     
-    print("\nTraining SVM classifier...")
+    print("\nMelatih classifier SVM untuk semua fitur...")
     model_svm = klasifikasi_svm(X_train, y_train, kernel='rbf')
     y_pred_svm = model_svm.predict(X_test)
     
-    # Save combined feature data
-    output_dir = os.path.join(base_path, 'hasil_ekstraksi')
-    os.makedirs(output_dir, exist_ok=True)
+    # Simpan hasil ekstraksi semua fitur
     np.savez(os.path.join(output_dir, 'fitur_kombinasi.npz'),
              X_train=X_train, X_test=X_test,
-             y_train=y_train, y_test=y_test)
+             y_train=y_train, y_test=y_test,
+             y_pred_knn=y_pred_knn, y_pred_svm=y_pred_svm)
+    
+    # 2. Ekstraksi dan klasifikasi fitur tekstur-warna
+    print("\n=== Ekstraksi dan Klasifikasi Fitur Tekstur-Warna ===")
+    X_train_tc, X_test_tc, y_train_tc, y_test_tc = save_texture_color_features(base_path)
+    
+    print("\nMelatih classifier KNN untuk fitur tekstur-warna...")
+    model_knn_tc = klasifikasi_knn(X_train_tc, y_train_tc, k=3)
+    y_pred_knn_tc = model_knn_tc.predict(X_test_tc)
+    
+    print("\nMelatih classifier SVM untuk fitur tekstur-warna...")
+    model_svm_tc = klasifikasi_svm(X_train_tc, y_train_tc, kernel='rbf')
+    y_pred_svm_tc = model_svm_tc.predict(X_test_tc)
+    
+    # Simpan hasil ekstraksi fitur tekstur-warna
+    np.savez(os.path.join(output_dir, 'fitur_tekstur_warna.npz'),
+             X_train=X_train_tc, X_test=X_test_tc,
+             y_train=y_train_tc, y_test=y_test_tc,
+             y_pred_knn=y_pred_knn_tc, y_pred_svm=y_pred_svm_tc)
+    
+    print("\nProses ekstraksi dan klasifikasi selesai!")
+    print(f"Hasil ekstraksi disimpan di: {output_dir}")
