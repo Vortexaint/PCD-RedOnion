@@ -84,6 +84,9 @@ Visualisasi hasil ekstraksi fitur tersimpan dalam subfolder:
 - `visualisasi_warna/`: Hasil visualisasi ekstraksi fitur warna
 - `visualisasi_bentuk/`: Hasil visualisasi ekstraksi fitur bentuk
 - `visualisasi_tekstur/`: Hasil visualisasi ekstraksi fitur tekstur
+- `visualisasi_tektur_bentuk/`: Hasil visualisasi gabungan ekstraksi fitur tekstur dan bentuk
+- `visualisasi_tektur_warna/`: Hasil visualisasi gabungan ekstraksi fitur tekstur dan warna
+
 
 ## Cara Penggunaan
 
@@ -131,6 +134,7 @@ python .\kode\ekstraksi.py
 - **152023061 M. Bakti Komara R. P.**
   - Pengembangan model klasifikasi multi-kelas
   - Implementasi kombinasi fitur (`ekstraksi_kombinasi.py`)
+  - Pengembangan ekstaksi fitur kombinasi (`visualisasi_tektur_bentuk/` dan `visualisasi_tektur_warna/`)
   - Implementasi preprocessing tambahan
   - Pembuatan video demo
 
