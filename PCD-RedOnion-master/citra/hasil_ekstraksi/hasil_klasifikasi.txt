@@ -2,19 +2,16 @@ Hasil Klasifikasi:
 -----------------------------------------------------------------------------------------------------------------------------
 | Gambar          | Label      | Bentuk-KNN | Bentuk-SVM | Tekstur-KNN | Tekstur-SVM | Warna-KNN  | Warna-SVM  | Voting     |
 -----------------------------------------------------------------------------------------------------------------------------
-| kertas.png      | kertas     | organik    | organik    | plastik    | plastik    | plastik    | kertas     | plastik    |
-| KS_001.png      | kertas     | organik    | plastik    | kertas     | plastik    | kertas     | kertas     | kertas     |
-| KS_004.jpg      | kertas     | kertas     | kertas     | kertas     | kertas     | kertas     | kertas     | kertas     |
-| KS_008.jpg      | kertas     | kertas     | plastik    | plastik    | plastik    | kertas     | kertas     | kertas     |
-| KS_009.jpg      | kertas     | kertas     | kertas     | plastik    | kertas     | kertas     | kertas     | kertas     |
-| OS_002.png      | organik    | organik    | organik    | plastik    | plastik    | organik    | organik    | organik    |
+| KS_001.png      | kertas     | plastik    | plastik    | kertas     | plastik    | kertas     | kertas     | plastik    |
+| KS_004.jpg      | kertas     | organik    | plastik    | kertas     | kertas     | kertas     | kertas     | kertas     |
+| KS_008.jpg      | kertas     | plastik    | plastik    | plastik    | plastik    | kertas     | kertas     | plastik    |
+| KS_009.jpg      | kertas     | kertas     | plastik    | kertas     | kertas     | kertas     | kertas     | kertas     |
+| OS_002.png      | organik    | kertas     | kertas     | organik    | plastik    | organik    | organik    | organik    |
 | OS_003.jpg      | organik    | organik    | organik    | organik    | plastik    | organik    | organik    | organik    |
-| OS_006.jpg      | organik    | organik    | organik    | organik    | plastik    | organik    | organik    | organik    |
-| OS_020.jpg      | organik    | kertas     | kertas     | kertas     | plastik    | organik    | plastik    | kertas     |
-| pisang.png      | organik    | organik    | plastik    | plastik    | organik    | organik    | organik    | organik    |
-| botol.png       | plastik    | plastik    | organik    | kertas     | organik    | organik    | organik    | organik    |
+| OS_006.jpg      | organik    | plastik    | plastik    | organik    | plastik    | organik    | organik    | plastik    |
+| OS_020.jpg      | organik    | organik    | plastik    | kertas     | kertas     | organik    | organik    | organik    |
 | PS_002.jpg      | plastik    | kertas     | kertas     | plastik    | plastik    | plastik    | plastik    | plastik    |
-| PS_011.jpg      | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    |
-| PS_015.jpg      | plastik    | organik    | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    |
-| PS_016.jpg      | plastik    | organik    | kertas     | organik    | plastik    | organik    | organik    | organik    |
+| PS_011.jpg      | plastik    | kertas     | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    |
+| PS_015.jpg      | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    | plastik    |
+| PS_016.jpg      | plastik    | kertas     | plastik    | organik    | plastik    | organik    | organik    | organik    |
 -----------------------------------------------------------------------------------------------------------------------------

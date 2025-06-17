@@ -105,6 +105,81 @@ def combine_texture_color_features(image_path):
         print(f"Error processing {image_path}: {str(e)}")
         return None
 
+def load_shape_features(image_path):
+    """
+    Mengekstrak fitur bentuk dari satu citra.
+    
+    Total fitur yang dihasilkan (3):
+    - Fitur bentuk (3): luas, rasio aspek, jumlah sisi
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        numpy.array: Vektor fitur bentuk atau None jika gagal
+    """
+    try:
+        shape_features = ekstraksi_fitur_bentuk(image_path)
+        if shape_features is None or len(shape_features) != 3:
+            print(f"Warning: Invalid shape features for {image_path}")
+            return None
+            
+        return np.array(shape_features).astype(np.float64)
+        
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        return None
+
+def load_color_features(image_path):
+    """
+    Mengekstrak fitur warna dari satu citra.
+    
+    Total fitur yang dihasilkan (515):
+    - Fitur warna (515): Histogram HSV (512) + Mean RGB (3)
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        numpy.array: Vektor fitur warna atau None jika gagal
+    """
+    try:
+        color_features = ekstraksi_fitur_warna(image_path)
+        if color_features is None or len(color_features) != 515:
+            print(f"Warning: Invalid color features for {image_path}")
+            return None
+            
+        return color_features.flatten().astype(np.float64)
+        
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        return None
+
+def load_texture_features(image_path):
+    """
+    Mengekstrak fitur tekstur dari satu citra.
+    
+    Total fitur yang dihasilkan (20):
+    - Fitur tekstur (20): 5 properti GLCM × 4 sudut
+    
+    Args:
+        image_path (str): Path ke file citra
+        
+    Returns:
+        numpy.array: Vektor fitur tekstur atau None jika gagal
+    """
+    try:
+        texture_features = ekstraksi_fitur_tekstur(image_path)
+        if texture_features is None or len(texture_features) != 20:
+            print(f"Warning: Invalid texture features for {image_path}")
+            return None
+            
+        return texture_features.flatten().astype(np.float64)
+        
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        return None
+
 def load_dataset_split(base_path):
     """
     Load training and testing datasets from designated folders
@@ -496,106 +571,120 @@ def visualize_texture_shape_combination(image_path, output_dir):
     
     print(f"Visualisasi disimpan di: {output_path}")
 
-def extract_shape_features(data_dict):
+def load_dataset_by_feature(base_path, feature_type='all'):
     """
-    Mengekstrak fitur bentuk dari dataset
+    Load training and testing datasets with specified feature type
+    
+    Args:
+        base_path (str): Path ke direktori dataset
+        feature_type (str): Tipe fitur yang akan diekstrak ('shape', 'color', 'texture', atau 'all')
     """
-    features = []
-    labels = []
-    for category, image_paths in data_dict.items():
-        for image_path in image_paths:
-            image = cv2.imread(image_path)
-            if image is not None:
-                try:
-                    fitur = ekstraksi_fitur_bentuk(image_path)
-                    if fitur is not None:
-                        features.append(fitur)
-                        labels.append(category)
-                except:
-                    print(f"Warning: Invalid shape features for {image_path}")
-    return np.array(features), np.array(labels)
-
-def extract_color_features(data_dict):
-    """
-    Mengekstrak fitur warna dari dataset
-    """
-    features = []
-    labels = []
-    for category, image_paths in data_dict.items():
-        for image_path in image_paths:
-            fitur = ekstraksi_fitur_warna(image_path)
-            if fitur is not None:
-                features.append(fitur)
-                labels.append(category)
-    return np.array(features), np.array(labels)
-
-def extract_texture_features(data_dict):
-    """
-    Mengekstrak fitur tekstur dari dataset
-    """
-    features = []
-    labels = []
-    for category, image_paths in data_dict.items():
-        for image_path in image_paths:
-            fitur = ekstraksi_fitur_tekstur(image_path)
-            if fitur is not None:
-                features.append(fitur)
-                labels.append(category)
-    return np.array(features), np.array(labels)
-
-def evaluate_knn(X_train, X_test, y_train, y_test, k=3):
-    """
-    Evaluasi model KNN
-    """
-    # Normalisasi fitur
+    # Initialize lists for features and labels
+    X_train, y_train = [], []
+    X_test, y_test = [], []
+    
+    # Classes to process
+    classes = ['kertas', 'organik', 'plastik']
+    
+    # Select feature extraction function
+    if feature_type == 'shape':
+        feature_func = load_shape_features
+    elif feature_type == 'color':
+        feature_func = load_color_features
+    elif feature_type == 'texture':
+        feature_func = load_texture_features
+    else:
+        feature_func = load_and_combine_features
+    
+    # Process training data
+    training_path = os.path.join(base_path, 'training')
+    for class_name in classes:
+        class_path = os.path.join(training_path, class_name)
+        if not os.path.exists(class_path):
+            print(f"Warning: Training path {class_path} does not exist")
+            continue
+            
+        for img_file in os.listdir(class_path):
+            img_path = os.path.join(class_path, img_file)
+            features = feature_func(img_path)
+            if features is not None:
+                X_train.append(features)
+                y_train.append(class_name)
+    
+    # Process testing data
+    testing_path = os.path.join(base_path, 'testing')
+    for class_name in classes:
+        class_path = os.path.join(testing_path, class_name)
+        if not os.path.exists(class_path):
+            print(f"Warning: Testing path {class_path} does not exist")
+            continue
+            
+        for img_file in os.listdir(class_path):
+            img_path = os.path.join(class_path, img_file)
+            features = feature_func(img_path)
+            if features is not None:
+                X_test.append(features)
+                y_test.append(class_name)
+    
+    # Check if we have enough data
+    if len(X_train) == 0 or len(X_test) == 0:
+        raise ValueError("No valid features could be extracted from the dataset")
+    
+    # Convert to numpy arrays
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+    
+    print(f"\nDataset statistics ({feature_type} features):")
+    print(f"Training samples: {len(X_train)}")
+    print(f"Testing samples: {len(X_test)}")
+    print(f"Feature vector length: {X_train.shape[1]}")
+    
+    # Scale features
     scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
     
-    # Train dan evaluasi
-    model = KNeighborsClassifier(n_neighbors=k)
-    model.fit(X_train_scaled, y_train)
-    y_pred = model.predict(X_test_scaled)
-    
-    # Hitung akurasi dan laporan klasifikasi
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"[KNN] Akurasi: {accuracy}")
-    print("[KNN] Classification Report:")
-    print(classification_report(y_test, y_pred))
-    
-    # Cross validation
-    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=5)
-    print(f"[KNN] Cross-validation scores: {cv_scores}")
-    print(f"[KNN] Mean CV accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
-    
-    return model
+    return X_train, X_test, y_train, y_test
 
-def evaluate_svm(X_train, X_test, y_train, y_test, kernel='linear'):
+def classify_individual_features(base_path):
     """
-    Evaluasi model SVM
+    Melakukan klasifikasi untuk setiap jenis fitur secara terpisah
     """
-    # Normalisasi fitur
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    feature_types = ['shape', 'color', 'texture', 'all']
+    results = {}
     
-    # Train dan evaluasi
-    model = SVC(kernel=kernel)
-    model.fit(X_train_scaled, y_train)
-    y_pred = model.predict(X_test_scaled)
-    
-    # Hitung akurasi dan laporan klasifikasi
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"[SVM] Akurasi: {accuracy}")
-    print("[SVM] Classification Report:")
-    print(classification_report(y_test, y_pred))
-    
-    # Cross validation
-    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=5)
-    print(f"[SVM] Cross-validation scores: {cv_scores}")
-    print(f"[SVM] Mean CV accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
-    
-    return model
+    for feature_type in feature_types:
+        print(f"\nProcessing {feature_type.upper()} features:")
+        
+        # Load dataset dengan fitur yang sesuai
+        X_train, X_test, y_train, y_test = load_dataset_by_feature(base_path, feature_type)
+        
+        # Gabungkan data training dan testing untuk klasifikasi
+        X = np.concatenate([X_train, X_test])
+        y = np.concatenate([y_train, y_test])
+        
+        # Klasifikasi menggunakan KNN
+        knn_model = klasifikasi_knn(X, y)
+        
+        # Klasifikasi menggunakan SVM
+        svm_model = klasifikasi_svm(X, y)
+        
+        # Simpan hasil dalam dictionary
+        results[feature_type] = {
+            'knn_accuracy': knn_model.score(X_test, y_test) * 100,
+            'svm_accuracy': svm_model.score(X_test, y_test) * 100
+        }
+        
+    # Print summary
+    print("\nClassification Results Summary:")
+    print("=" * 50)
+    print(f"{'Feature Type':<15} {'KNN Accuracy':>15} {'SVM Accuracy':>15}")
+    print("-" * 50)
+    for feature_type, scores in results.items():
+        print(f"{feature_type.capitalize():<15} {scores['knn_accuracy']:>14.2f}% {scores['svm_accuracy']:>14.2f}%")
+    print("=" * 50)
 
 if __name__ == "__main__":
     print("Memulai proses ekstraksi dan klasifikasi fitur...")
@@ -659,52 +748,6 @@ if __name__ == "__main__":
              y_train=y_train_ts, y_test=y_test_ts,
              y_pred_knn=y_pred_knn_ts, y_pred_svm=y_pred_svm_ts)
     
-    # 4. Ekstraksi dan klasifikasi fitur bentuk
-    print("\n=== Ekstraksi dan Klasifikasi Fitur Bentuk ===")
-    # ...existing code...
-
-    print("\nMelatih classifier KNN untuk fitur bentuk...")
-    evaluate_knn(X_train_shape, X_test_shape, y_train_shape, y_test_shape)
-    
-    print("\nMelatih classifier SVM untuk fitur bentuk...")
-    evaluate_svm(X_train_shape, X_test_shape, y_train_shape, y_test_shape)
-
-    print("\n=== Ekstraksi dan Klasifikasi Fitur Warna ===")
-    print("Mengekstrak fitur warna dari data training...")
-    X_train_color, y_train_color = extract_color_features(train_data)
-    
-    print("Mengekstrak fitur warna dari data testing...")
-    X_test_color, y_test_color = extract_color_features(test_data)
-
-    print("Statistik dataset fitur warna:")
-    print(f"Jumlah sampel training: {len(X_train_color)}")
-    print(f"Jumlah sampel testing: {len(X_test_color)}")
-    print(f"Dimensi fitur: {X_train_color.shape[1]}")
-
-    print("\nMelatih classifier KNN untuk fitur warna...")
-    evaluate_knn(X_train_color, X_test_color, y_train_color, y_test_color)
-    
-    print("\nMelatih classifier SVM untuk fitur warna...")
-    evaluate_svm(X_train_color, X_test_color, y_train_color, y_test_color)
-
-    print("\n=== Ekstraksi dan Klasifikasi Fitur Tekstur ===")
-    print("Mengekstrak fitur tekstur dari data training...")
-    X_train_texture, y_train_texture = extract_texture_features(train_data)
-    
-    print("Mengekstrak fitur tekstur dari data testing...")
-    X_test_texture, y_test_texture = extract_texture_features(test_data)
-
-    print("Statistik dataset fitur tekstur:")
-    print(f"Jumlah sampel training: {len(X_train_texture)}")
-    print(f"Jumlah sampel testing: {len(X_test_texture)}")
-    print(f"Dimensi fitur: {X_train_texture.shape[1]}")
-
-    print("\nMelatih classifier KNN untuk fitur tekstur...")
-    evaluate_knn(X_train_texture, X_test_texture, y_train_texture, y_test_texture)
-    
-    print("\nMelatih classifier SVM untuk fitur tekstur...")
-    evaluate_svm(X_train_texture, X_test_texture, y_train_texture, y_test_texture)
-    
     # 4. Visualisasi untuk sampel dari setiap kategori
     print("\n=== Membuat Visualisasi ===")
     vis_output_dir = os.path.join(output_dir, 'visualisasi_tekstur_bentuk')
@@ -725,3 +768,7 @@ if __name__ == "__main__":
     
     print("\nProses ekstraksi, klasifikasi, dan visualisasi selesai!")
     print(f"Hasil ekstraksi dan visualisasi disimpan di: {output_dir}")
+    
+    # 5. Klasifikasi fitur individu
+    print("\n=== Klasifikasi Fitur Individu ===")
+    classify_individual_features(base_path)

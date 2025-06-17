@@ -4,147 +4,39 @@ import os
 import csv
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 from validasi_model import klasifikasi_knn, klasifikasi_svm, prediksi_single_image
 from skimage.feature import graycomatrix, graycoprops
 from ekstraksi_kombinasi import load_dataset_split, load_and_combine_features, visualize_process
 
-# --- Optimasi Parameter SVM ---
-def optimize_svm_params(X, y):
-    """
-    Mencari parameter optimal untuk model SVM menggunakan Grid Search
-    
-    Args:
-        X: Fitur yang telah di-scale
-        y: Label
-    
-    Returns:
-        dict: Parameter terbaik untuk SVM
-    """
-    param_grid = {
-        'C': [0.1, 1, 10, 100],
-        'gamma': ['scale', 'auto', 0.001, 0.01, 0.1],
-        'kernel': ['rbf', 'poly'],
-        'degree': [2, 3, 4],
-        'class_weight': ['balanced', None]
-    }
-    
-    grid_search = GridSearchCV(
-        SVC(),
-        param_grid,
-        cv=5,
-        scoring='accuracy',
-        n_jobs=-1
-    )
-    
-    grid_search.fit(X, y)
-    print(f"\n[INFO] Best SVM parameters: {grid_search.best_params_}")
-    print(f"[INFO] Best cross-validation accuracy: {grid_search.best_score_:.3f}")
-    
-    return grid_search.best_params_
-
 # --- Ekstraksi Fitur Bentuk ---
 def ekstraksi_fitur_bentuk(image_path):
     """
-    Mengekstrak fitur geometri dari citra dengan preprocessing dan fitur tambahan.
+    Mengekstrak fitur geometri dari citra.
     
     Args:
         image_path (str): Path ke file citra
         
     Returns:
-        list: [luas, rasio_aspek, jumlah_sisi, kebulatan, eksentrisitas, solidity, extent, convexity] atau None jika gagal
+        list: [luas, rasio_aspek, jumlah_sisi] atau None jika gagal
     """
-    # Baca gambar
     image = cv2.imread(image_path)
     if image is None:
         return None
-        
-    # Preprocessing yang lebih baik
-    # 1. Resize untuk konsistensi
-    image = cv2.resize(image, (300, 300))
-    
-    # 2. Denoising
-    image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-    
-    # 3. Konversi ke grayscale dengan pembobotan yang lebih baik
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    # 4. Histogram equalization untuk meningkatkan kontras
-    gray = cv2.equalizeHist(gray)
-    
-    # 5. Bilateral filtering untuk edge preservation
-    gray = cv2.bilateralFilter(gray, 9, 75, 75)
-    
-    # 6. Adaptive thresholding
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                 cv2.THRESH_BINARY_INV, 11, 2)
-    
-    # 7. Morphological operations
-    kernel = np.ones((3,3), np.uint8)
-    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
-    
-    # Temukan kontur
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    if not contours:
-        return None
-        
-    # Ambil kontur terbesar
-    cnt = max(contours, key=cv2.contourArea)
-    
-    # Ekstraksi fitur
-    # 1. Luas
-    luas = cv2.contourArea(cnt)
-    if luas < 100:  # Filter objek terlalu kecil
-        return None
-        
-    # 2. Keliling
-    keliling = cv2.arcLength(cnt, True)
-    
-    # 3. Bounding Rectangle
-    x, y, w, h = cv2.boundingRect(cnt)
-    rasio_aspek = float(w)/h
-    
-    # 4. Approx Poly
-    epsilon = 0.04 * keliling
-    approx = cv2.approxPolyDP(cnt, epsilon, True)
-    sisi = len(approx)
-    
-    # 5. Kebulatan (Circularity)
-    kebulatan = (4 * np.pi * luas) / (keliling * keliling)
-    
-    # 6. Eksentrisitas
-    if len(cnt) >= 5:  # Minimal 5 points needed for ellipse fitting
-        try:
-            (_, _), (MA, ma), angle = cv2.fitEllipse(cnt)
-            # Pastikan MA (major axis) tidak nol dan ma/MA tidak lebih dari 1
-            if MA > 0:
-                ratio = min(ma/MA, 1.0)  # membatasi rasio ke maksimal 1
-                eksentrisitas = np.sqrt(1 - ratio**2)
-            else:
-                eksentrisitas = 0
-        except:
-            eksentrisitas = 0
-    else:
-        eksentrisitas = 0
-    
-    # 7. Solidity
-    hull = cv2.convexHull(cnt)
-    hull_area = cv2.contourArea(hull)
-    solidity = float(luas)/hull_area if hull_area > 0 else 0
-    
-    # 8. Extent
-    rect_area = w * h
-    extent = float(luas)/rect_area if rect_area > 0 else 0
-    
-    # 9. Convexity
-    hull_perimeter = cv2.arcLength(hull, True)
-    convexity = keliling / hull_perimeter if hull_perimeter > 0 else 0
-    
-    return [luas, rasio_aspek, sisi, kebulatan, eksentrisitas, solidity, extent, convexity]
+    abu = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, biner = cv2.threshold(abu, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    kontur, _ = cv2.findContours(biner, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in kontur:
+        luas = cv2.contourArea(cnt)
+        if luas < 100:
+            continue
+        keliling = cv2.arcLength(cnt, True)
+        x, y, w, h = cv2.boundingRect(cnt)
+        rasio_aspek = w / h
+        approx = cv2.approxPolyDP(cnt, 0.04 * keliling, True)
+        sisi = len(approx)
+        return [luas, rasio_aspek, sisi]
+    return None
 
 # --- Ekstraksi Fitur Tekstur ---
 def ekstraksi_fitur_tekstur(image_path):
@@ -421,106 +313,6 @@ def evaluate_single_image(image_path, models, scaler_bentuk, scaler_tekstur, sca
     
     return predictions, voting_result
 
-# --- Training SVM dengan Parameter Optimal ---
-def train_optimized_svm(X_train, y_train):
-    """
-    Melatih model SVM dengan parameter optimal
-    
-    Args:
-        X_train: Fitur training yang telah di-scale
-        y_train: Label training
-    
-    Returns:
-        SVC: Model SVM yang telah dilatih
-    """
-    # Parameter grid untuk optimasi
-    param_grid = {
-        'C': [0.1, 1, 10, 100],
-        'gamma': ['scale', 'auto', 0.001, 0.01, 0.1],
-        'kernel': ['rbf', 'poly'],
-        'degree': [2, 3, 4],
-        'class_weight': ['balanced', None]
-    }
-    
-    # Grid search dengan cross validation
-    grid_search = GridSearchCV(
-        SVC(),
-        param_grid,
-        cv=5,
-        scoring='accuracy',
-        n_jobs=-1
-    )
-    
-    # Fit grid search
-    grid_search.fit(X_train, y_train)
-    
-    print(f"\n[INFO] Parameter SVM terbaik: {grid_search.best_params_}")
-    print(f"[INFO] Akurasi cross-validation terbaik: {grid_search.best_score_:.3f}")
-    
-    return grid_search.best_estimator_
-
-# --- Load Dataset dengan Augmentasi ---
-def load_augmented_dataset(folder_dataset):
-    """
-    Memuat dataset dengan augmentasi data
-    
-    Args:
-        folder_dataset: Path ke folder dataset
-    
-    Returns:
-        tuple: (features, labels)
-    """
-    features = []
-    labels = []
-    
-    for label in os.listdir(folder_dataset):
-        folder_label = os.path.join(folder_dataset, label)
-        if not os.path.isdir(folder_label):
-            continue
-            
-        for img_file in os.listdir(folder_label):
-            if not img_file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                continue
-                
-            img_path = os.path.join(folder_label, img_file)
-            
-            # Ekstrak fitur dari gambar asli
-            features_orig = ekstraksi_fitur_bentuk(img_path)
-            if features_orig is not None:
-                features.append(features_orig)
-                labels.append(label)
-                
-            # Load gambar untuk augmentasi
-            image = cv2.imread(img_path)
-            if image is None:
-                continue
-                
-            # Augmentasi data
-            # 1. Flip horizontal
-            img_flip = cv2.flip(image, 1)
-            features_flip = ekstraksi_fitur_bentuk(img_path)
-            if features_flip is not None:
-                features.append(features_flip)
-                labels.append(label)
-            
-            # 2. Rotasi 90 derajat
-            rows, cols = image.shape[:2]
-            M = cv2.getRotationMatrix2D((cols/2, rows/2), 90, 1)
-            img_rot = cv2.warpAffine(image, M, (cols, rows))
-            features_rot = ekstraksi_fitur_bentuk(img_path)
-            if features_rot is not None:
-                features.append(features_rot)
-                labels.append(label)
-            
-            # 3. Scaling
-            img_scale = cv2.resize(image, None, fx=0.8, fy=0.8)
-            features_scale = ekstraksi_fitur_bentuk(img_path)
-            if features_scale is not None:
-                features.append(features_scale)
-                labels.append(label)
-    
-    return np.array(features), np.array(labels)
-
 # --- Main ---
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -548,14 +340,8 @@ if __name__ == "__main__":
     bentuk_features, bentuk_labels = load_dataset(dataset_path, ekstraksi_fitur_bentuk)
     scaler_bentuk = StandardScaler().fit(bentuk_features)
     bentuk_features_scaled = scaler_bentuk.transform(bentuk_features)
-    # Train KNN model untuk fitur bentuk
     model_bentuk_knn = klasifikasi_knn(bentuk_features_scaled, bentuk_labels, k=3)
-    
-    # Optimize dan train SVM model untuk fitur bentuk
-    print("\n[INFO] Optimizing SVM parameters for shape features...")
-    best_params = optimize_svm_params(bentuk_features_scaled, bentuk_labels)
-    model_bentuk_svm = SVC(**best_params, probability=True)
-    model_bentuk_svm.fit(bentuk_features_scaled, bentuk_labels)
+    model_bentuk_svm = klasifikasi_svm(bentuk_features_scaled, bentuk_labels, kernel='linear')
     
     # Load dan training dataset tekstur
     print("\n[INFO] Loading dan training dataset tekstur...")
